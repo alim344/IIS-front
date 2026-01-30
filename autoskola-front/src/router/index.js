@@ -1,10 +1,14 @@
 import { createRouter, createWebHistory } from 'vue-router';
 
 // Import your components here
-import HelloWorld from '@/components/HelloWorld.vue'; // Update path if necessary
+//import HelloWorld from '@/components/HelloWorld.vue'; // Update path if necessary
+import HomeView from '@/view/HomeView/HomeView.vue'
+import RegistrationView from '@/view/RegistrationView.vue';
+
 
 const routes = [
-  { path: '/', component: HelloWorld },
+  { path: '/', component: HomeView },
+  {path: '/register', component: RegistrationView},
  
 ];
 
