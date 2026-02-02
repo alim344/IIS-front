@@ -172,7 +172,7 @@ body, html {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  padding: 120px 20px 40px;
+  padding: auto;
 }
 
 .login-card {
