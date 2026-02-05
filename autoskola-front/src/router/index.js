@@ -9,16 +9,24 @@ import CandidateHomeView from '@/view/HomeView/CandidateHomeView.vue';
 import InstructorHomeView from '@/view/HomeView/InstructorHomeView.vue';
 import ProfessorHomeView from '@/view/HomeView/ProfessorHomeView.vue';
 import AdminHomeView from '@/view/HomeView/AdminHomeView.vue';
+import HomeScheduleComponent from '@/components/InstructorComponents/HomeScheduleComponent.vue';
+import ClassTrackingComponent from '@/components/InstructorComponents/ClassTrackingComponent.vue';
+import InstructorProfileComponent from '@/components/InstructorComponents/InstructorProfileComponent.vue';
+import InstructorTrendsComponent from '@/components/InstructorComponents/InstructorTrendsComponent.vue';
 
 
 const routes = [
-  { path: '/', component: HomeView },
+  { path: '/b', component: HomeView },
   {path: '/register', component: RegistrationView},
   {path:'/login', component: LoginView},
   {path:'/candidateHome', component: CandidateHomeView},
-  {path:'/instructorHome', component:InstructorHomeView},
+  {path:'/', component:InstructorHomeView},
   {path:'/professorHome', component:ProfessorHomeView},
-  {path:'/adminHome', component:AdminHomeView}
+  {path:'/adminHome', component:AdminHomeView},
+  {path:'/homeschedule', component:HomeScheduleComponent},
+  {path:'/classtracking', component:ClassTrackingComponent},
+  {path:'/instructorProfile', component:InstructorProfileComponent},
+  {path:'/instructorTrends', component:InstructorTrendsComponent},
  
 ];
 
