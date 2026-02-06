@@ -16,11 +16,11 @@ import InstructorTrendsComponent from '@/components/InstructorComponents/Instruc
 
 
 const routes = [
-  { path: '/b', component: HomeView },
+  { path: '/', component: HomeView },
   {path: '/register', component: RegistrationView},
   {path:'/login', component: LoginView},
   {path:'/candidateHome', component: CandidateHomeView},
-  {path:'/', component:InstructorHomeView},
+  {path:'/instructorHome', component:InstructorHomeView},
   {path:'/professorHome', component:ProfessorHomeView},
   {path:'/adminHome', component:AdminHomeView},
   {path:'/homeschedule', component:HomeScheduleComponent},
