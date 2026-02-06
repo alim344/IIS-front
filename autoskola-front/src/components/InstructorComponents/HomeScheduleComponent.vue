@@ -33,13 +33,17 @@
               v-for="event in getEventsForDay(day)" 
               :key="event.startTime + event.email" 
               class="compact-event"
-              :class="event.category.toLowerCase()"
+              :class="getEventStatus(event)"
               :style="getEventStyle(event)"
               @click.stop="selectEvent(event)"
             >
               <div class="event-time">{{ formatEventTime(event) }}</div>
               <div class="event-title">{{ event.name }} {{ event.lastname }}</div>
-              <div class="event-category">{{ event.category }}</div>
+              <div>{{ event.category }}</div>
+              <div class="event-status">
+                {{ getEventStatusText(event) }}
+              </div>
+              
             </div>
           </div>
         </div>
@@ -73,7 +77,7 @@ export default {
       currentDate: new Date(),
       selectedEvent: null,
       rowHeight: 60, // Matches CSS height
-      startHour: 8,  // Calendar starts at 8 AM
+      startHour: 8,  
       times: ['8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', 
               '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM'],
       events: []
@@ -134,6 +138,17 @@ export default {
                eventDate.getFullYear() === day.year;
       });
     },
+    getEventStatus(event){
+        const now = new Date();
+        const start = new Date(event.startTime);
+        const end = new Date(event.endTime);
+
+        if (now > end) return 'passed';
+        if (now >= start && now <= end) return 'ongoing';
+        if (event.accepted) return 'future-accepted';
+
+        return 'future-pending';
+    },
 
     getEventStyle(event) {
       const start = new Date(event.startTime);
@@ -145,11 +160,23 @@ export default {
       const top = (startMinutes / 60) * this.rowHeight;
       const height = (durationMinutes / 60) * this.rowHeight;
 
+     const status = this.getEventStatus(event);
+
       return {
         top: `${top}px`,
-        height: `${height - 4}px` 
+        height: `${height - 4}px` ,
+        opacity: status === 'passed' ? 0.4 : 1
       };
     },
+    getEventStatusText(event) {
+      const status = this.getEventStatus(event);
+
+      if (status === 'passed') return 'Passed';
+      if (status === 'ongoing') return 'In session';
+      if (status === 'future-accepted') return 'Accepted';
+      return 'Pending';
+    },
+
 
     formatEventTime(event) {
       const options = { hour: 'numeric', minute: '2-digit', hour12: true };
@@ -314,14 +341,41 @@ export default {
 
 .compact-event:hover { transform: scale(1.02); z-index: 10; }
 
-.compact-event.a { background: #e3f2fd; border-left-color: #2196F3; color: #0d47a1; }
-.compact-event.b { background: #e8f5e9; border-left-color: #4CAF50; color: #1b5e20; }
-.compact-event.c { background: #f3e5f5; border-left-color: #9C27B0; color: #4a148c; }
-.compact-event.am { background: #fff3e0; border-left-color: #FF9800; color: #e65100; }
-
 .event-time { font-weight: bold; font-size: 9px; opacity: 0.8; }
 .event-title { font-weight: 700; margin: 1px 0; }
 
+.compact-event.future-accepted {
+  background: #e8f5e9;
+  border-left-color: #4CAF50;
+  color: #1b5e20;
+}
+
+.compact-event.future-pending {
+  background: #fff3e0;
+  border-left-color: #ff9800;
+  color: #e65100;
+}
+
+.compact-event.ongoing {
+  background: #f3e5f5;
+  border-left-color: #9C27B0;
+  color: #4a148c;
+}
+
+.compact-event.passed {
+  background: #f5f5f5;
+  border-left-color: #9e9e9e;
+  color: #393939;
+}
+
+/* Status label */
+.event-status {
+  font-size: 9px;
+  margin-top: 3px;
+  font-weight: 600;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
 .right-panel {
   flex: 1;
   max-width: 300px;
