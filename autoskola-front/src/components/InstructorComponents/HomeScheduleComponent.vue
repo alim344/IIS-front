@@ -63,14 +63,57 @@
           <div class="panel-section">
 
           </div>
+      </div>
+    </div>
 
+    <!-- Modal for class details -->
+    <div v-if="showEventModal && selectedEvent" class="modal-overlay" @click="closeEventModal">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>Class Details</h3>
+          <button class="modal-close-btn" @click="closeEventModal">×</button>
+        </div>
+        
+        <div class="modal-body">
+          <div class="detail-section">
+            <div class="detail-row">
+              <span class="detail-label">Student:</span>
+              <span class="detail-value">{{ selectedEvent.name }} {{ selectedEvent.lastname }}</span>
+            </div>
+            
+            <div class="detail-row">
+              <span class="detail-label">Category:</span>
+              <span class="detail-value">{{ selectedEvent.category }}</span>
+            </div>
+            
+            <div class="detail-row">
+              <span class="detail-label">Date:</span>
+              <span class="detail-value">{{ formatDetailedDate(selectedEvent) }}</span>
+            </div>
+
+            <div class="detail-row">
+              <span class="detail-label">Time:</span>
+              <span class="detail-value">{{ formatEventTime(selectedEvent) }}</span>
+            </div>
+            
+            <div class="detail-row">
+              <span class="detail-label">Status:</span>
+              <span class="detail-value status-badge" :class="getEventStatus(selectedEvent)">
+                {{ getEventStatusText(selectedEvent) }}
+              </span>
+            </div>
+            
+           
+          </div>
+          
+          
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-
 export default {
   props: {
   events: {
@@ -86,6 +129,7 @@ export default {
       startHour: 8,  
       times: ['8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', 
               '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM'],
+      showEventModal : false
      
     };
   },
@@ -211,14 +255,33 @@ export default {
 
     selectEvent(event) {
       this.selectedEvent = event;
+      this.showEventModal = true;
+    },
+    closeEventModal(){
+      this.selectedEvent = null;
+      this.showEventModal = false;
     },
 
     addEventAtTime(day, time) {
       alert(`Add event on ${day.name} at ${time}`);
-    }
-  },
+    },
 
-  
+   
+    formatDetailedDate(event) {
+      const start = new Date(event.startTime);
+     
+      
+      const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+     
+      
+      const dateStr = start.toLocaleDateString('en-US', dateOptions);
+     
+      
+      return `${dateStr}`;
+    },
+    
+   
+  }
 };
 </script>
 
@@ -407,8 +470,6 @@ export default {
   padding: 15px;
 }
 
-
-
 .panel-section h4 {
   color: #3a283c;
   margin: 0 0 15px 0;
@@ -454,5 +515,148 @@ export default {
   color: #666;
 }
 
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
 
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e0e0e0;
+  background: #f9f2fb;
+  border-radius: 12px 12px 0 0;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #3a283c;
+  font-size: 1.3rem;
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: #9C27B0;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.modal-close-btn:hover {
+  background-color: rgba(156, 39, 176, 0.1);
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+.detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.detail-row {
+  display: flex;
+  align-items: flex-start;
+}
+
+.detail-label {
+  font-weight: 600;
+  color: #555;
+  width: 100px;
+  flex-shrink: 0;
+  font-size: 0.9rem;
+}
+
+.detail-value {
+  flex: 1;
+  color: #333;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge.future-accepted {
+  background: #e8f5e9;
+  color: #1b5e20;
+}
+
+.status-badge.future-pending {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.status-badge.ongoing {
+  background: #f3e5f5;
+  color: #4a148c;
+}
+
+.status-badge.passed {
+  background: #f5f5f5;
+  color: #393939;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 20px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.action-btn {
+  padding: 10px 20px;
+  border-radius: 6px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+
+.close-btn:hover {
+  background: #e0e0e0;
+}
 </style>

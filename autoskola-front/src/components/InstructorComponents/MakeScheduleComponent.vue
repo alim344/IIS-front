@@ -135,7 +135,8 @@ export default {
               '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM'],
 
        showScheduleModal: false,
-       scheduleMode: null,  // manual i alg
+       scheduleMode: null,  // manual i alg i copy old
+
      
     };
   },
