@@ -33,7 +33,9 @@
             <!-- Main Content Area -->
             <main class="content-area">
                 <div class="content-wrapper">
-                    <component :is="activeComponent" />
+                    <component :is="activeComponent" 
+                    :events="events"
+                    @update-events="events = $event"/>
                 </div>
             </main>
         </div>
@@ -41,10 +43,12 @@
 </template>
 
 <script>
+import axios from 'axios';
 import HomeScheduleComponent from '@/components/InstructorComponents/HomeScheduleComponent.vue';
 import ClassTrackingComponent from '@/components/InstructorComponents/ClassTrackingComponent.vue';
 import InstructorTrendsComponent from '@/components/InstructorComponents/InstructorTrendsComponent.vue';
 import InstructorProfileComponent from '@/components/InstructorComponents/InstructorProfileComponent.vue';
+import MakeScheduleComponent from '@/components/InstructorComponents/MakeScheduleComponent.vue';
 
 export default {
     name: 'InstructorDashboard',
@@ -54,16 +58,19 @@ export default {
         ClassTrackingComponent,
         InstructorTrendsComponent,
         InstructorProfileComponent,
+        MakeScheduleComponent,
     },
 
     data() {
         return {
             activeComponent: 'HomeScheduleComponent',
+            events: [],
             tabs: [
                 { id: 1, text: 'Schedule', component: 'HomeScheduleComponent' },
-                { id: 2, text: 'Class Tracking', component: 'ClassTrackingComponent' },
-                { id: 3, text: 'Trends', component: 'InstructorTrendsComponent'},
-                { id: 4, text: 'Profile', component: 'InstructorProfileComponent' },
+                { id: 2, text: 'Handle Schedule', component: 'MakeScheduleComponent' },
+                { id: 3, text: 'Class Tracking', component: 'ClassTrackingComponent' },
+                { id: 4, text: 'Trends', component: 'InstructorTrendsComponent'},
+                { id: 5, text: 'Profile', component: 'InstructorProfileComponent' },
             ]
         };
     },
@@ -81,6 +88,16 @@ export default {
             this.activeComponent = component;
         }
     },
+    mounted(){
+        const token = localStorage.getItem("token");
+        if(token) {
+        axios.get('http://localhost:8080/practicalclass/fullschedule', { 
+            headers: { Authorization: `Bearer ${token}` }
+        })
+        .then(response => { this.events = response.data; })
+        .catch(error => { console.error("Fetch error:", error); });
+        }
+    }
 
    
 }

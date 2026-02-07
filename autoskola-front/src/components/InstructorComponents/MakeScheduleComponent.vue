@@ -1,13 +1,18 @@
 <template>
   <div class="weekly-calendar-container">
     <div class="calendar-header">
-      <div class="calendar-navigation">
-        <button class="nav-btn" @click="previousWeek">&lt;</button>
-        <button class="today-btn" @click="goToToday">Today</button>
-        <button class="nav-btn" @click="nextWeek">&gt;</button>
-        <h2 class="current-week">{{ weekRange }}</h2>
-      </div>
-    </div>
+        <div class="calendar-navigation">
+            <button class="nav-btn" @click="previousWeek">&lt;</button>
+            <button class="today-btn" @click="goToToday">Today</button>
+            <button class="nav-btn" @click="nextWeek">&gt;</button>
+            <h2 class="current-week">{{ weekRange }}</h2>
+        </div>
+
+        <div class="header-action">
+            <button class="create-button" @click="showModal">CREATE NEXT WEEK SCHEDULE</button>
+        </div>
+     </div>
+
 
     <div class="calendar-grid">
       <div class="calendar-content">
@@ -50,34 +55,76 @@
       </div>
 
       <div class="right-panel">
-        <div class="panel-section">
-            <h4>Upcoming classes today</h4>
-            <div class="upcoming-list">
-              <div v-for="event in upcomingEvents" :key="event.id" class="upcoming-item">
-                <div class="upcoming-time">{{ formatEventTime(event) }}</div>
-                <div class="upcoming-category">{{ event.category }}</div>
-                <div class="upcoming-student">{{ event.name }} {{ event.lastname }}</div>
-              </div>
-            </div>
-          </div>
           <div class="panel-section">
+            <!-- Nothing selected -->
+            <div v-if="!scheduleMode">
+            <h4>No action selected</h4>
+            <p>Select an option to prepare next week’s schedule.</p>
+            </div>
 
+            <!-- COPY MODE -->
+            <div v-else-if="scheduleMode === 'copy'">
+            <h4>Copy schedule</h4>
+            <p>This will duplicate this week’s schedule.</p>
+
+            
+            </div>
+
+            <!-- MANUAL MODE -->
+            <div v-else-if="scheduleMode === 'manual'">
+            <h4>Manual scheduling</h4>
+            <p>Click on time slots to add classes.</p>
+
+            <button class="sidebar-action primary">Add class</button>
+            
+            </div>
+
+            <div v-else-if="scheduleMode === 'alg'">
+            <h4>ALgorithm scheduling</h4>
+            <p>Click on days you want less classes</p>
+
+            <button class="sidebar-action primary">Add class</button>
+            
+            </div>
           </div>
 
       </div>
     </div>
+    <!-- Modal Overlay -->
+        <div v-if="showScheduleModal" class="modal-overlay" @click.self="closeModal">
+        <div class="modal">
+            <h3>Create next weeks schedule</h3>
+
+            <button class="modal-option" @click="selectMode('copy')">
+            Copy from this week
+            </button>
+
+            <button class="modal-option" @click="selectMode('alg')">
+            Use algorithm
+            </button>
+
+            <button class="modal-option" @click="selectMode('manual')">
+            Create manually
+            </button>
+
+            <button class="modal-cancel" @click="closeModal">
+            Cancel
+            </button>
+        </div>
+        </div>
+
   </div>
 </template>
 
 <script>
 
 export default {
-  props: {
-  events: {
-    type: Array,
-    required: true
-  }
-},
+    props:{
+        events: {
+        type: Array,
+        required: true
+    }
+    },
   data() {
     return {
       currentDate: new Date(),
@@ -86,9 +133,13 @@ export default {
       startHour: 8,  
       times: ['8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', 
               '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM'],
+
+       showScheduleModal: false,
+       scheduleMode: null,  // manual i alg
      
     };
   },
+
   computed: {
     days() {
       const daysArray = [];
@@ -117,24 +168,6 @@ export default {
       const start = this.days[0];
       const end = this.days[6];
       return `${start.monthName} ${start.date} - ${end.date}, ${start.year}`;
-    },
-    upcomingEvents() {
-      const now = new Date();
-      const today = new Date();
-
-      return this.events
-        .filter(event => {
-          const start = new Date(event.startTime);
-
-          
-          const isToday =
-            start.getDate() === today.getDate() &&
-            start.getMonth() === today.getMonth() &&
-            start.getFullYear() === today.getFullYear();
-
-          return isToday && start > now;
-        })
-        .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
     }
 
   },
@@ -153,7 +186,16 @@ export default {
     goToToday() {
       this.currentDate = new Date();
     },
-
+    showModal(){
+        this.showScheduleModal = true;
+    },
+    closeModal(){
+        this.showScheduleModal = false;
+    },
+    selectMode(mode) {
+        this.scheduleMode = mode;
+        this.showScheduleModal = false;
+    },
     getEventsForDay(day) {
       return this.events.filter(event => {
         const eventDate = new Date(event.startTime);
@@ -217,8 +259,6 @@ export default {
       alert(`Add event on ${day.name} at ${time}`);
     }
   },
-
-  
 };
 </script>
 
@@ -237,9 +277,19 @@ export default {
 }
 
 .calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 15px 20px;
   border-bottom: 1px solid var(--border-color);
 }
+
+.header-action {
+  display: flex;
+  align-items: center;
+}
+
+
 
 .calendar-navigation {
   display: flex;
@@ -256,6 +306,22 @@ export default {
   color: #9C27B0;
   font-weight: 600;
 }
+
+.create-button {
+  background: rgb(190, 143, 233);
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+}
+
+.create-button:hover {
+  background: #3a283c;
+}
+
 
 .current-week {
   margin-left: 10px;
@@ -416,42 +482,64 @@ export default {
   font-weight: 600;
 }
 
-.upcoming-list {
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
 }
 
-.upcoming-item {
-  padding: 10px;
+.modal {
   background: white;
+  padding: 25px;
+  border-radius: 30px;
+  width: 300px;
+  text-align: center;
+  box-shadow: #333;
+}
+
+.modal-option {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px;
+  border: none;
+  background: rgb(154, 154, 174);
+  color: white;
   border-radius: 6px;
-  border-left: 3px solid rgb(190, 143, 233);
   cursor: pointer;
-  transition: all 0.2s;
 }
 
-.upcoming-item:hover {
-  transform: translateX(2px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+.modal-option:hover {
+  background: rgb(117, 117, 172);
 }
 
-.upcoming-time {
-  font-size: 0.8rem;
-  color: rgb(190, 143, 233);
-  font-weight: 600;
-  margin-bottom: 2px;
+.modal-cancel {
+  margin-top: 15px;
+  background: none;
+  border: none;
+  color: #777;
+  cursor: pointer;
 }
 
-.upcoming-category {
-  font-weight: 600;
-  font-size: 0.9rem;
-  margin-bottom: 2px;
+/* Sidebar buttons */
+.sidebar-action {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: white;
+  cursor: pointer;
 }
 
-.upcoming-student {
-  font-size: 0.8rem;
-  color: #666;
+.sidebar-action.primary {
+  background: rgb(154, 154, 174);
+  color: white;
+  border: none;
 }
 
 

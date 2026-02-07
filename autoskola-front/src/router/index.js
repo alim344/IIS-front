@@ -13,6 +13,7 @@ import HomeScheduleComponent from '@/components/InstructorComponents/HomeSchedul
 import ClassTrackingComponent from '@/components/InstructorComponents/ClassTrackingComponent.vue';
 import InstructorProfileComponent from '@/components/InstructorComponents/InstructorProfileComponent.vue';
 import InstructorTrendsComponent from '@/components/InstructorComponents/InstructorTrendsComponent.vue';
+import MakeScheduleComponent from '@/components/InstructorComponents/MakeScheduleComponent.vue';
 
 
 const routes = [
@@ -23,10 +24,11 @@ const routes = [
   {path:'/instructorHome', component:InstructorHomeView},
   {path:'/professorHome', component:ProfessorHomeView},
   {path:'/adminHome', component:AdminHomeView},
-  {path:'/homeschedule', component:HomeScheduleComponent},
-  {path:'/classtracking', component:ClassTrackingComponent},
-  {path:'/instructorProfile', component:InstructorProfileComponent},
-  {path:'/instructorTrends', component:InstructorTrendsComponent},
+  {path:'/homeschedule', component:HomeScheduleComponent, props: true},
+  {path:'/classtracking', component:ClassTrackingComponent, props: true},
+  {path:'/instructorProfile', component:InstructorProfileComponent, props: true},
+  {path:'/instructorTrends', component:InstructorTrendsComponent, props:true},
+  {path:'/makeschedule', component: MakeScheduleComponent, props:true},
  
 ];
 
