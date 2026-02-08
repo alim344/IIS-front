@@ -72,10 +72,15 @@
 
             <!-- MANUAL MODE -->
             <div v-else-if="scheduleMode === 'manual'">
-            <h4>Manual scheduling</h4>
-            <p>Click on time slots to add classes.</p>
+              <h4>Manual scheduling</h4>
+                <form class="class-form"> 
+                  <h5>Create a class</h5>
+                  
+                  
+                
 
-            <button class="sidebar-action primary">Add class</button>
+                <button class="sidebar-action primary">Add class</button>
+                </form>
             
             </div>
 
@@ -544,4 +549,16 @@ export default {
 }
 
 
+.class-form{
+  display: flex;
+  flex-direction: column;
+  align-content: center;
+  border: 3px solid rgb(190, 143, 233);  /* Use your purple color */
+  padding: 5px 25px;
+  background: white;
+  box-shadow: 0 6px 20px rgba(190, 143, 233, 0.2);
+  border-radius: 16px;
+  min-height: 250px;
+  gap: 15px;  /* Space between child elements */
+}
 </style>
