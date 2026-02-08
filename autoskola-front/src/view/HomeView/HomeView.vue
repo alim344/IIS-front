@@ -7,7 +7,7 @@
       </div>
       <div class = "authbuttons"> 
           
-          <button class = "log button">Login</button>
+          <button class = "log button" @click="navigateToLogin">Login</button>
       </div>
   </header>
 
@@ -149,7 +149,12 @@
 
       navigateToRegistration(){
         this.$router.push('/register');
+      },
+
+      navigateToLogin(){
+         this.$router.push('/login');
       }
+
     }
 
 

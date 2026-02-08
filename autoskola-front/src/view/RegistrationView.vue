@@ -97,21 +97,21 @@
                 :key="category.id" 
                 class="category-option"
                 :class="{ 'selected': selectedCategory === category.id }"
-                
+                @click="selectCategory(category.id)"
               >
                 <div class="category-info">
                   <h3>{{ category.title }}</h3>
                   <p class="category-price">{{ category.price }}</p>
                 </div>
                 <div class="category-duration">
-                  <span>Ovde ce biti koja vozila pripadaju kat</span>
+                  <text>{{category.vehicles}}</text>
                 </div>
               </div>
             </div>
           </div>
 
 
-          
+           <button class="reg button" @click.prevent="registerUser">Register</button>
           
 
 
@@ -124,10 +124,12 @@
 </template>
 
 <script>
+import axios from 'axios';
 export default {
   
   data() {
     return {
+      selectedCategory:null,
       registerData: {
         firstName: "",
         lastName: "",
@@ -139,68 +141,116 @@ export default {
       },
       categories: [
         {
-          id: 1,
+          id: "AM",
           title: "Category AM",
-          description: "Light motor vehicles intended for city and short-distance driving.",
-          duration: "20 hours",
+          vehicles: "Mopeds and light quadricycles up to 45 km/h",
           price: "€350"
         },
         {
-          id: 2,
+          id: "A1",
           title: "Category A1",
-          duration: "25 hours",
+          vehicles: "Motorcycles up to 125cc and 11 kW, motor tricycles up to 15 kW",
           price: "€450"
         },
         {
-          id: 3,
+          id: "A2",
           title: "Category A2",
-          duration: "30 hours",
+          vehicles: "Motorcycles up to 35 kW with power/weight ratio ≤ 0.2 kW/kg",
           price: "€550"
         },
         {
-          id: 4,
+          id: "A",
           title: "Category A",
-          duration: "30 hours",
+          vehicles: "All motorcycles and motor tricycles",
           price: "€650"
         },
         {
-          id: 5,
+          id: "B",
           title: "Category B",
-          duration: "40 hours",
+          vehicles: "Passenger cars up to 3.5t, up to 8 passengers plus driver",
           price: "€750"
         },
         {
-          id: 6,
+          id: "BE",
           title: "Category BE",
-          duration: "10 hours",
+          vehicles: "Category B vehicles with trailers exceeding 750 kg",
           price: "€300"
         },
         {
-          id: 7,
+          id: 'C',
           title: "Category C",
-          duration: "50 hours",
+          vehicles: "Trucks over 3.5t without passenger transport",
           price: "€1200"
         },
         {
-          id: 8,
+          id: "CE",
           title: "Category CE",
-          duration: "15 hours",
+          vehicles: "Category C vehicles with trailers or semi-trailers",
           price: "€450"
         },
         {
-          id: 9,
+          id: "D",
           title: "Category D",
-          duration: "55 hours",
+          vehicles: "Buses with more than 8 passenger seats",
           price: "€1400"
         },
         {
-          id: 10,
+          id: "DE",
           title: "Category DE",
-          duration: "15 hours",
+          vehicles: "Category D vehicles with trailers exceeding 750 kg",
           price: "€500"
         }
       ]
     };
+  },
+  methods:{
+
+    selectCategory(categoryId){
+      if(this.selectedCategory == categoryId){
+        this.selectedCategory = null;
+         this.registerData.category = null;
+      }else{
+        this.selectedCategory = categoryId;
+         this.registerData.category = categoryId;
+      }
+    },
+    registerUser(){
+
+      if(this.selectedCategory == null){
+        alert("Please choose a category u want to sign up for");
+        return;
+      }
+
+
+      if(this.registerData.password != this.registerData.confirmPassword){
+        alert("Passwords do not match.");
+        return;
+      }
+
+      axios.post('http://localhost:8080/auth/register', this.registerData)
+          .then(() => {
+            alert('You have successfully registered.');
+            this.$router.push('/');
+          })
+          .catch(error => {
+            // Handle error response and display error message
+            if(error.response.status == 409){
+               this.registrationStatus = 'Username is already taken, please try again';
+               alert('Username already exists. Please try again');
+            }
+            if (error.response && error.response.data) {
+              this.registrationStatus = error.response.data.message || 'An error occurred during registration.';
+            } else {
+              this.registrationStatus = 'An error occurred during registration.';
+            }
+            console.error('Registration error:', error);
+            
+          });
+
+
+    }
+
+
   }
 };
 </script>
@@ -356,6 +406,34 @@ body,html{
 .category-duration {
   color: #666;
   font-size: 0.9rem;
+}
+
+
+.button{
+  border: 2px;
+  padding: 8px 15px;
+  margin: 0 10px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+
+
+.reg{
+  border-color:rgb(58, 40, 60);
+  box-shadow: 0 4px 6px rgba(39, 27, 27, 0.9);
+  font-size: 30px;
+  background-color: rgb(190, 143, 233);
+  transition: transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  margin: 20px 0 0 0;
+}
+
+.reg:hover{
+  color: #484264;
+  background-color: #342b56;
+  color:#fef9fb;
+  transform: scale(1.3);
+  box-shadow: 0 0 20px rgba(199, 147, 221, 0.8); /* Blue glow */
 }
 
 </style>
