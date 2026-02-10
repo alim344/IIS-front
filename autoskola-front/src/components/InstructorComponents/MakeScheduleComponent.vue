@@ -71,14 +71,47 @@
             </div>
 
             <!-- MANUAL MODE -->
-            <div v-else-if="scheduleMode === 'manual'">
-              <h4>Manual scheduling</h4>
-                <form class="class-form"> 
+            <div v-else-if="scheduleMode === 'manual'" >
+                <div class="manual_header"> 
+                  <h4 class="manual_title">Manual scheduling</h4>
+                </div>
+
+                <form class="class-form" @submit.prevent="createClass"> 
                   <h5>Create a class</h5>
                   
-                  
-                
+                      <label class="form-label">Filter prefrences by day</label>
+                      <select v-model="selectedDay" class="day_select">
+                        <option value="">All days</option>
+                        <option v-for="day in days" :key="day" :value="day">{{ day.date }} {{ day.name }}</option>
+                      </select>
 
+                      <div class="timepref_list">
+                        <div v-for="item in filteredItems" :key="item.email" class="pref_card" @click="selectTimePref(item)" :class="{selected: selectedTimePref=== item}">
+                          <div>{{ item.candidate_name }} {{ item.canddiate_lastname }}</div>
+                          <div class="timepref_date">{{ item.date }}   {{ item.startTime }} -{{ item.endTime }}</div>
+                        </div>
+                      </div>
+
+                      <div class="form_group"> 
+                        <label for="startTime">Start Time:</label>
+                        <input 
+                        type="time"
+                        key="startTime" v-model="classFormData.startTime" required
+                        step="900"
+                        />
+                      </div>
+
+                      <div class="form_group"> 
+                        <label for="endTime">End Time:</label>
+                        <input 
+                        type="time"
+                        key="endTime" v-model="classFormData.endTime" required
+                        step="900"
+                        />
+                      </div>
+                    
+
+                  
                 <button class="sidebar-action primary">Add class</button>
                 </form>
             
@@ -122,8 +155,9 @@
 </template>
 
 <script>
-
+import axios from 'axios';
 export default {
+  components: {  },
     props:{
         events: {
         type: Array,
@@ -134,14 +168,29 @@ export default {
     return {
       currentDate: new Date(),
       selectedEvent: null,
-      rowHeight: 60, // Matches CSS height
+      rowHeight: 60, 
       startHour: 8,  
       times: ['8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', 
               '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM'],
 
        showScheduleModal: false,
        scheduleMode: null,  // manual i alg i copy old
+       draftEvents: [],
+       timepref: [],
 
+      selectedDay:null,
+      selectedTimePref:null,
+      classFormData:{
+        startTime:null,
+        endTime:null,
+
+        name:"",
+        lastname:"",
+        email:"",
+        category:"",
+        accepted:"",
+      }
+       
      
     };
   },
@@ -169,11 +218,47 @@ export default {
       }
       return daysArray;
     },
+     nextWeekDays() {
+    const daysArray = [];
+    const monday = this.getNextMonday(this.currentDate);
+
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(monday);
+      date.setDate(monday.getDate() + i);
+
+      daysArray.push({
+        name: date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(),
+        date: date.getDate(),
+        month: date.getMonth(),
+        year: date.getFullYear(),
+        fullDate: date
+      });
+    }
+
+    return daysArray;
+  },
 
     weekRange() {
       const start = this.days[0];
       const end = this.days[6];
       return `${start.monthName} ${start.date} - ${end.date}, ${start.year}`;
+    },
+    filteredItems(){
+      if (!this.selectedDay) {
+        return this.timepref; 
+      }
+
+       const selected = new Date(
+    this.selectedDay.year,
+    this.selectedDay.month,   
+    this.selectedDay.date     
+  );
+
+
+    return this.timepref.filter(item => {
+      const itemDate = new Date(item.date);
+      return itemDate.toDateString() === selected.toDateString();
+    });
     }
 
   },
@@ -201,9 +286,38 @@ export default {
     selectMode(mode) {
         this.scheduleMode = mode;
         this.showScheduleModal = false;
+
+        this.currentDate = this.getNextMonday()
+        this.draftEvents = [];
+        
+         if ((mode === 'manual' || mode === 'alg') && this.timepref.length === 0) {
+            const token = localStorage.getItem("token");
+
+            if(token){
+              axios.get('http://localhost:8080/time_pref/get_by_inst_id', 
+              {headers:{Authorization: `Bearer ${token}`}})
+                .then(response => {this.timepref = response.data})
+                .catch(error => { console.error("Fetch error:", error); })
+            }
+         }
+
+    },
+
+    getNextMonday(date = new Date()){
+      const d = new Date(date);
+      const day = d.getDay();  // 0- Sunday, 1-Monday
+
+        const diffToMonday = day === 0 ? -6 : 1 - day;
+        d.setDate(d.getDate() + diffToMonday);
+
+        // Move to next week
+        d.setDate(d.getDate() + 7);
+
+        d.setHours(0, 0, 0, 0);
+        return d;
     },
     getEventsForDay(day) {
-      return this.events.filter(event => {
+      return [...this.events,...this.draftEvents].filter(event => {
         const eventDate = new Date(event.startTime);
         return eventDate.getDate() === day.date &&
                eventDate.getMonth() === day.month &&
@@ -211,6 +325,8 @@ export default {
       });
     },
     getEventStatus(event){
+
+      if (event.isDraft) return 'future-pending';
         const now = new Date();
         const start = new Date(event.startTime);
         const end = new Date(event.endTime);
@@ -263,7 +379,55 @@ export default {
 
     addEventAtTime(day, time) {
       alert(`Add event on ${day.name} at ${time}`);
+    },
+
+    selectTimePref(item){
+      this.selectedTimePref = item;
+
+      this.classFormData.startTime = item.startTime;
+      this.classFormData.endTime = item.endTime;
+    },
+    createClass(){
+
+        if(!this.selectTimePref){
+          alert('Select a candidate')
+          return;
+        }
+
+          const day = new Date(this.selectedTimePref.date);
+
+          const [startHour, startMinute] = this.classFormData.startTime.split(":");
+          const [endHour, endMinute] = this.classFormData.endTime.split(":");
+
+          const startDateTime = new Date(day);
+          startDateTime.setHours(startHour, startMinute, 0, 0);
+
+          const endDateTime = new Date(day);
+          endDateTime.setHours(endHour, endMinute, 0, 0);
+
+          const draftEvent = {
+            startTime: startDateTime.toISOString(),
+            endTime: endDateTime.toISOString(),
+
+            name: this.selectedTimePref.candidate_name,
+            lastname: this.selectedTimePref.canddiate_lastname,
+            email: this.selectedTimePref.email,
+            category: this.selectedTimePref.category,
+
+            accepted: false,
+            isDraft: true
+          };
+
+           this.draftEvents.push(draftEvent);
+
+           
+            this.selectedTimePref = null;
+            this.classFormData.startTime = null;
+            this.classFormData.endTime = null;
+
     }
+   
+
   },
 };
 </script>
@@ -468,6 +632,10 @@ export default {
   max-width: 300px;
   padding: 20px;
   background: #fafafa;
+
+   display: flex;
+  flex-direction: column;
+  overflow-y: auto;
 }
 
 .panel-sections {
@@ -486,6 +654,8 @@ export default {
   margin: 0 0 15px 0;
   font-size: 1rem;
   font-weight: 600;
+
+
 }
 
 
@@ -561,4 +731,105 @@ export default {
   min-height: 250px;
   gap: 15px;  /* Space between child elements */
 }
+
+
+.day_select{
+   width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: white;
+  font-size: 14px;
+  color: #1e293b;
+  transition: all 0.2s;
+}
+
+.manual_header{
+  margin-bottom: 32px;
+}
+
+.manual_title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 8px 0;
+}
+
+.form-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #475569;
+  margin-bottom: 8px;
+}
+
+.timepref_list{
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px #827e88;
+
+  max-height: 300px;      
+  overflow-y: auto;       
+  padding-right: 6px; 
+}
+
+.pref_card{
+  border: 1px solid #000205;
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 5px;
+  transition: all 0.2s;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pref_card:hover{
+  border-radius: 12px;
+  background: #827e88;
+  
+}
+
+.pref_card.selected{
+   border: 2px solid #1b5e20;   /* green border */
+  background-color: #e8f5e9; 
+}
+
+.timepref_date{
+  font-size: small;
+  color: #333;
+
+}
+
+
+.form_group{
+  padding: 5px;
+  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center ;
+  margin: 10px;
+  border-bottom: 2px solid rgb(168, 147, 159);
+}
+
+.form_group label{
+   display: block;
+  margin-bottom: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #555;
+}
+
+.form_group input{
+   width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.3s;
+}
+
 </style>
