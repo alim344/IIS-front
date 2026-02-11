@@ -1,73 +1,50 @@
 <template>
-    <div>
-        <header class="top"> 
-            <div class ="logo"> 
-                <span class = "big_logo">TaSaMi</span>
-                <span class = "small_logo">Car school</span>
-            </div>
-            <div class = "authbuttons"> 
-                
-                <button class = "log button" @click="navigateToHomePage">Log out</button>
-            </div>
-        </header>
-      <div class="main-container">
-
-        <aside class="sidebar">
-
-          <nav class="sidebar-nav">
-            <ul>
-              <li
-                  v-for="tab in tabs"
-                  :key="tab.id"
-                  :class="{ 'active': activeComponent === tab.component }"
-                  @click="setActiveComponent(tab.component)"
-              >
-
-                <span class="nav-text">{{ tab.text }}</span>
-              </li>
-            </ul>
-          </nav>
-
-        </aside>
-
-        <!-- Main Content Area -->
-        <main class="content-area">
-          <div class="content-wrapper">
-            <component :is="activeComponent"
-                       :events="events"
-                       @update-events="events = $event"/>
-          </div>
-        </main>
+  <div>
+    <header class="top">
+      <div class ="logo">
+        <span class = "big_logo">TaSaMi</span>
+        <span class = "small_logo">Car school</span>
       </div>
+      <div class = "authbuttons">
+        <button class = "log button" @click="navigateToHomePage">Log out</button>
+      </div>
+    </header>
+    <div class="main-container">
+
+      <aside class="sidebar">
+        <nav class="sidebar-nav">
+          <ul>
+            <li
+                v-for="tab in tabs"
+                :key="tab.id"
+                :class="{ 'active': isActiveTab(tab.path) }"
+                @click="navigateToTab(tab.path)"
+            >
+              <span class="nav-text">{{ tab.text }}</span>
+            </li>
+          </ul>
+        </nav>
+      </aside>
+
+      <main class="content-area">
+        <div class="content-wrapper">
+          <router-view />
+        </div>
+      </main>
     </div>
+  </div>
 </template>
 
 <script>
-
-import InstructorsComponent from "@/components/AdminComponents/AdminInstructorsComponent.vue";
-import StudentsComponent from "@/components/AdminComponents/AdminStudentsComponent.vue";
-import ProfessorsComponent from "@/components/AdminComponents/AdminProfessorsComponent.vue";
-import VehiclesComponent from "@/components/AdminComponents/AdminVehiclesComponent.vue";
-import AdminProfileComponent from "@/components/AdminComponents/AdminProfileComponent.vue";
-
 export default {
-  components: {
-    InstructorsComponent,
-    StudentsComponent,
-    ProfessorsComponent,
-    VehiclesComponent,
-    AdminProfileComponent,
-  },
-
   data() {
     return {
-      activeComponent: 'StudentsComponent',
       tabs: [
-        { id: 1, text: 'Students', component: 'StudentsComponent' },
-        { id: 2, text: 'Instructors', component: 'InstructorsComponent' },
-        { id: 3, text: 'Professors', component: 'ProfessorsComponent' },
-        { id: 4, text: 'Vehicles', component: 'VehiclesComponent'},
-        { id: 5, text: 'Profile', component: 'AdminProfileComponent' },
+        { id: 1, text: 'Students', path: '/adminHome/students' },
+        { id: 2, text: 'Instructors', path: '/adminHome/instructors' },
+        { id: 3, text: 'Professors', path: '/adminHome/professors' },
+        { id: 4, text: 'Vehicles', path: '/adminHome/vehicles' },
+        { id: 5, text: 'Profile', path: '/adminHome/profile' },
       ]
     };
   },
@@ -79,11 +56,21 @@ export default {
       this.$router.push('/');
     },
 
-    setActiveComponent(component) {
-      this.activeComponent = component;
+    navigateToTab(path) {
+      this.$router.push(path);
+    },
+
+    isActiveTab(path) {
+      return this.$route.path === path ||
+          (path.includes('instructors') && this.$route.path.includes('/adminHome/instructors/'));
+    }
+  },
+
+  mounted() {
+    if (this.$route.path === '/adminHome') {
+      this.$router.push('/adminHome/students');
     }
   }
-
 }
 </script>
 
@@ -148,14 +135,12 @@ export default {
   box-shadow: 0 0 20px rgba(199, 147, 221, 0.8);
 }
 
-/* Main container for sidebar and content */
 .main-container {
   display: flex;
   min-height: calc(100vh - 80px);
-  margin-top: 80px; /* Height of the fixed header */
+  margin-top: 80px;
 }
 
-/* Sidebar styles */
 .sidebar {
   width: 250px;
   background: linear-gradient(180deg, #3a283c 0%, #2c1f2d 100%);
@@ -236,10 +221,9 @@ export default {
   color: rgba(255, 255, 255, 0.7);
 }
 
-/* Main content area */
 .content-area {
   flex: 1;
-  margin-left: 250px; /* Width of sidebar */
+  margin-left: 250px;
   padding: 20px;
   background-color: #f5f5f7;
   min-height: calc(100vh - 80px);

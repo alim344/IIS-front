@@ -14,6 +14,12 @@ import ClassTrackingComponent from '@/components/InstructorComponents/ClassTrack
 import InstructorProfileComponent from '@/components/InstructorComponents/InstructorProfileComponent.vue';
 import InstructorTrendsComponent from '@/components/InstructorComponents/InstructorTrendsComponent.vue';
 import MakeScheduleComponent from '@/components/InstructorComponents/MakeScheduleComponent.vue';
+import AdminInstructorsComponent from "@/components/AdminComponents/AdminInstructorsComponent.vue";
+import AdminProfessorsComponent from "@/components/AdminComponents/AdminProfessorsComponent.vue";
+import AdminProfileComponent from "@/components/AdminComponents/AdminProfileComponent.vue";
+import AdminStudentsComponent from "@/components/AdminComponents/AdminStudentsComponent.vue";
+import AdminVehiclesComponent from "@/components/AdminComponents/AdminVehiclesComponent.vue";
+import InstructorDetailsComponent from "@/components/AdminComponents/InstructorDetailsComponent.vue";
 
 
 const routes = [
@@ -23,7 +29,21 @@ const routes = [
   {path:'/candidateHome', component: CandidateHomeView},
   {path:'/instructorHome', component:InstructorHomeView},
   {path:'/professorHome', component:ProfessorHomeView},
-  {path:'/adminHome', component:AdminHomeView},
+
+  {path: '/adminHome',
+    component: AdminHomeView,
+    children: [
+
+      { path: 'instructors', component: AdminInstructorsComponent },
+      { path: 'instructors/:id', component: InstructorDetailsComponent },
+
+      { path: 'students', component: AdminStudentsComponent },
+      { path: 'vehicles', component: AdminVehiclesComponent },
+      { path: 'professors', component: AdminProfessorsComponent },
+      { path: 'profile', component: AdminProfileComponent },
+
+    ]},
+
   {path:'/homeschedule', component:HomeScheduleComponent, props: true},
   {path:'/classtracking', component:ClassTrackingComponent, props: true},
   {path:'/instructorProfile', component:InstructorProfileComponent, props: true},
