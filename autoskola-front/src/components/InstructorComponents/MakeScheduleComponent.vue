@@ -55,7 +55,7 @@
       </div>
 
       <div class="right-panel">
-          <div class="panel-section">
+          <div class="panel-section" v-show="!isEditModalOpen">
             <!-- Nothing selected -->
             <div v-if="!scheduleMode">
             <h4>No action selected</h4>
@@ -126,6 +126,48 @@
             </div>
           </div>
 
+           <!--EDIT MODAL-->
+        <div class="edit_modal" v-if="isEditModalOpen"> 
+            <h3>Edit class</h3>
+
+            <div class="candidate_info">
+              <div>Name: {{ editForm.name }}</div>
+              <div>Lastname: {{ editForm.lastname }}</div>
+              <div>Category: {{ editForm.category }}</div>
+            </div>
+
+              <div class="form_group">
+                <label>Date</label>
+                <input type="date" v-model="editForm.date" />
+              </div>
+
+              <div class="form_group">
+                <label>Start Time</label>
+                <input type="time" v-model="editForm.startTime" />
+              </div>
+
+              <div class="form_group">
+                <label>End Time</label>
+                <input type="time" v-model="editForm.endTime" />
+              </div>
+
+              <div class="actions">
+    <button class="sidebar-action primary" @click="saveEdit(editingEvent)">
+      Edit
+    </button>
+    <button class="sidebar-action" @click="closeEditModal">
+      Cancel
+    </button>
+    <button class="sidebar-action deletion" @click="deleteClass(editingEvent)">
+      Delete Class
+    </button>
+  </div>
+
+
+            
+
+        </div>
+
       </div>
     </div>
     <!-- Modal Overlay -->
@@ -150,6 +192,8 @@
             </button>
         </div>
         </div>
+
+       
 
   </div>
 </template>
@@ -177,7 +221,6 @@ export default {
        scheduleMode: null,  // manual i alg i copy old
        draftEvents: [],
        timepref: [],
-
       selectedDay:null,
       selectedTimePref:null,
       classFormData:{
@@ -189,7 +232,17 @@ export default {
         email:"",
         category:"",
         accepted:"",
-      }
+      },
+      isEditModalOpen: false,
+      editingEvent:null,
+      editForm: {
+        date: null,
+        startTime: null,
+        endTime: null,
+        name: "",
+        lastname: "",
+        category: ""
+      },
        
      
     };
@@ -372,9 +425,30 @@ export default {
       const end = new Date(event.endTime).toLocaleTimeString([], options);
       return `${start} - ${end}`;
     },
+    canEditEvent(event) {
+        const now = new Date();
+        const eventEnd = new Date(event.endTime);
+        return event.isDraft || (!event.accepted && eventEnd > now);
+      },
 
     selectEvent(event) {
-      this.selectedEvent = event;
+      
+      if (!this.canEditEvent(event)) return;
+
+      this.editingEvent = event;
+      this.isEditModalOpen = true;
+
+      const start = new Date(event.startTime);
+      const end = new Date(event.endTime);
+
+      this.editForm.date = start.toISOString().slice(0, 10);
+      this.editForm.startTime = start.toTimeString().slice(0, 5);
+      this.editForm.endTime = end.toTimeString().slice(0, 5);
+
+      this.editForm.name = event.name;
+      this.editForm.lastname = event.lastname;
+      this.editForm.category = event.category;
+
     },
 
     addEventAtTime(day, time) {
@@ -424,6 +498,85 @@ export default {
             this.selectedTimePref = null;
             this.classFormData.startTime = null;
             this.classFormData.endTime = null;
+
+    },
+    closeEditModal() {
+      this.isEditModalOpen = false;
+      this.editingEvent = null;
+    },
+    saveEdit(){
+
+      if (!this.editForm.date || !this.editForm.startTime || !this.editForm.endTime) {
+        alert("Please fill all fields");
+        return;
+      }
+
+      const start = new Date(this.editForm.date);
+      const [sh, sm] = this.editForm.startTime.split(":");
+      start.setHours(sh, sm, 0, 0);
+
+      const end = new Date(this.editForm.date);
+      const [eh, em] = this.editForm.endTime.split(":");
+      end.setHours(eh, em, 0, 0);
+
+      const now = new Date();
+
+      if (start <= now) {
+        alert("Start time must be in the future");
+        return;
+      }
+
+      if (end <= start) {
+        alert("End time must be after start time");
+        return;
+      }
+
+      this.editingEvent.startTime = start.toISOString();
+      this.editingEvent.endTime = end.toISOString();
+
+      if(!this.editingEvent.isDraft){
+
+       axios.patch(`http://localhost:8080/practicalclass/updateDateTime`, this.editingEvent)
+        .then(() => {
+          console.log("Class updated successfully!");
+          this.closeEditModal();
+        })
+        .catch(error => {
+          if (error.response && error.response.status === 409) {
+             alert("Update conflict occurred! Please adjust the time.");
+            console.warn("Update conflict occurred!");
+          } else {
+            console.error("Error updating class:", error);
+          }
+        });
+
+      }else{
+        this.closeEditModal();
+      }
+
+      
+    },
+    async deleteClass(event){
+
+        if (event.isDraft) {
+          this.draftEvents = this.draftEvents.filter(e => e !== event);
+          
+          this.closeEditModal();
+          return;
+        }
+
+
+        try {
+          await axios.delete(`http://localhost:8080/practicalclass/deleteById/${event.id}`);
+
+          events = events.filter(e => e.id !== event.id);
+          this.closeEditModal();
+          console.log("Deleted and removed from events list");
+          return;
+        } catch (error) {
+          console.error("Error deleting:", error);
+        }
+       
 
     }
    
@@ -636,6 +789,7 @@ export default {
    display: flex;
   flex-direction: column;
   overflow-y: auto;
+   position: relative; 
 }
 
 .panel-sections {
@@ -716,6 +870,17 @@ export default {
   background: rgb(154, 154, 174);
   color: white;
   border: none;
+}
+
+.deletion{
+  background: red;
+  color: white;
+}
+
+.deletion:hover{
+  background: white;
+  color: red;
+  box-shadow:2px solid #9C27B0;
 }
 
 
@@ -831,5 +996,33 @@ export default {
   font-size: 14px;
   transition: border-color 0.3s;
 }
+
+.edit_modal{
+  position: absolute;
+ 
+  width: 240px;          
+  height: 100%; 
+  background: white;
+  border-left: 1px solid #e0e0e0;
+  box-shadow: -6px 0 20px rgba(0,0,0,0.08);
+  z-index: 900;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+ 
+   
+}
+
+.candidate_info{
+  margin: 10px;
+  margin-top: 0px;
+  padding: 10px;
+  border-bottom:2px solid #4CAF50;
+  display: flex;
+  flex-direction: column;
+}
+
+
 
 </style>
