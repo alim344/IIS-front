@@ -9,7 +9,10 @@
         </div>
 
         <div class="header-action">
+            <button v-if="scheduleMode!=null" class="cancel_button" @click="cancelSchedule">CANCEL</button>
+            <button v-if="scheduleMode!=null" class="save_button" @click="saveSchedule">SAVE SCHEDULE </button>
             <button class="create-button" @click="showModal">CREATE NEXT WEEK SCHEDULE</button>
+            
         </div>
      </div>
 
@@ -461,6 +464,30 @@ export default {
       this.classFormData.startTime = item.startTime;
       this.classFormData.endTime = item.endTime;
     },
+
+     isTimeSlotTaken(newStart, newEnd) {
+
+          const allEvents = [...this.events, ...this.draftEvents];
+
+          const sameDateEvents = allEvents.filter(event => {
+            const start = new Date(event.startTime);
+            const sameDate = start.toDateString() === newStart.toDateString();
+            return sameDate;
+          });
+
+          for (const event of sameDateEvents) {
+            const start = new Date(event.startTime);
+            const end = new Date(event.endTime);
+
+            if (newStart < end && newEnd > start) {
+              return true; 
+            }
+          }
+
+          return false; 
+  },
+
+
     createClass(){
 
         if(!this.selectTimePref){
@@ -478,6 +505,11 @@ export default {
 
           const endDateTime = new Date(day);
           endDateTime.setHours(endHour, endMinute, 0, 0);
+
+          if(this.isTimeSlotTaken(startDateTime,endDateTime)){
+            alert('Time slot already taken');
+            return;
+          }
 
           const draftEvent = {
             startTime: startDateTime.toISOString(),
@@ -531,6 +563,11 @@ export default {
         return;
       }
 
+       if (this.isTimeSlotTaken(start, end, this.editingEvent)) {
+        alert("Time slot already taken!");
+        return;
+      }
+
       this.editingEvent.startTime = start.toISOString();
       this.editingEvent.endTime = end.toISOString();
 
@@ -565,11 +602,12 @@ export default {
           return;
         }
 
+        const id = event.id;
+
 
         try {
-          await axios.delete(`http://localhost:8080/practicalclass/deleteById/${event.id}`);
+          await axios.delete(`http://localhost:8080/practicalclass/deleteById/${id}`);
 
-          events = events.filter(e => e.id !== event.id);
           this.closeEditModal();
           console.log("Deleted and removed from events list");
           return;
@@ -578,7 +616,16 @@ export default {
         }
        
 
-    }
+    },
+    cancelSchedule(){
+      this.draftEvents = [];
+      this.showScheduleModal= false;
+      this.scheduleMode= null; 
+      this.goToToday();
+      this.selectedDay=null;
+      this.selectedTimePref=null;
+
+    },
    
 
   },
@@ -610,6 +657,8 @@ export default {
 .header-action {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 
@@ -643,6 +692,36 @@ export default {
 
 .create-button:hover {
   background: #3a283c;
+}
+
+.save_button{
+  background: rgb(101, 164, 111);
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+}
+
+.save_button:hover{
+  background: #1b5e20;
+}
+
+.cancel_button{
+   background: rgb(194, 102, 102);
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+}
+
+.cancel_button:hover{
+  background: rgb(98, 31, 31);
 }
 
 
