@@ -320,6 +320,11 @@ export default {
   },
 
   methods: {
+    parseLocal(dateTimeString) {
+      if (dateTimeString instanceof Date) return dateTimeString;
+      return new Date(dateTimeString.replace("T", " "));
+    }
+,
     previousWeek() {
       const d = new Date(this.currentDate);
       d.setDate(d.getDate() - 7);
@@ -512,8 +517,8 @@ export default {
           }
 
           const draftEvent = {
-            startTime: startDateTime.toISOString(),
-            endTime: endDateTime.toISOString(),
+            startTime: startDateTime.toISOString().slice(0, 19),
+            endTime: endDateTime.toISOString().slice(0, 19),
 
             name: this.selectedTimePref.candidate_name,
             lastname: this.selectedTimePref.canddiate_lastname,
@@ -568,8 +573,9 @@ export default {
         return;
       }
 
-      this.editingEvent.startTime = start.toISOString();
-      this.editingEvent.endTime = end.toISOString();
+    this.editingEvent.startTime = start.toISOString().slice(0, 19);
+    this.editingEvent.endTime = end.toISOString().slice(0, 19);
+
 
       if(!this.editingEvent.isDraft){
 
@@ -607,7 +613,7 @@ export default {
 
         try {
           await axios.delete(`http://localhost:8080/practicalclass/deleteById/${id}`);
-
+           this.$emit('refreshEvents');
           this.closeEditModal();
           console.log("Deleted and removed from events list");
           return;
@@ -626,6 +632,36 @@ export default {
       this.selectedTimePref=null;
 
     },
+    saveSchedule(){
+      if(this.draftEvents.length == 0){
+        return;
+      }
+
+      const drafts = this.draftEvents.map(e => ({
+        email: e.email,
+        startTime: e.startTime,
+        endTime: e.endTime,
+      }));
+
+      const token = localStorage.getItem('token');
+      
+
+     axios.post('http://localhost:8080/practicalclass/manual_schedule/save', drafts, { headers: { Authorization: `Bearer ${token}` }})
+    .then(res => {
+      console.log('Drafts saved successfully', res.data);
+
+      this.draftEvents = [];
+
+      this.$emit('refreshEvents');
+
+      this.showScheduleModal= false;
+      this.scheduleMode= null; 
+    })
+    .catch(err => console.error(err));
+
+
+
+    }
    
 
   },
