@@ -320,11 +320,7 @@ export default {
   },
 
   methods: {
-    parseLocal(dateTimeString) {
-      if (dateTimeString instanceof Date) return dateTimeString;
-      return new Date(dateTimeString.replace("T", " "));
-    }
-,
+    
     previousWeek() {
       const d = new Date(this.currentDate);
       d.setDate(d.getDate() - 7);
@@ -344,6 +340,12 @@ export default {
     closeModal(){
         this.showScheduleModal = false;
     },
+    toLocalDateTimeString(date) {
+      const pad = n => n.toString().padStart(2, '0');
+
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00`;
+    },
+
     selectMode(mode) {
         this.scheduleMode = mode;
         this.showScheduleModal = false;
@@ -371,7 +373,7 @@ export default {
         const diffToMonday = day === 0 ? -6 : 1 - day;
         d.setDate(d.getDate() + diffToMonday);
 
-        // Move to next week
+        
         d.setDate(d.getDate() + 7);
 
         d.setHours(0, 0, 0, 0);
@@ -476,8 +478,10 @@ export default {
 
           const sameDateEvents = allEvents.filter(event => {
             const start = new Date(event.startTime);
-            const sameDate = start.toDateString() === newStart.toDateString();
-            return sameDate;
+             return (
+              start.toDateString() === newStart.toDateString() &&
+              (!this.editingEvent || event.id !== this.editingEvent.id)
+            );
           });
 
           for (const event of sameDateEvents) {
@@ -511,14 +515,11 @@ export default {
           const endDateTime = new Date(day);
           endDateTime.setHours(endHour, endMinute, 0, 0);
 
-          if(this.isTimeSlotTaken(startDateTime,endDateTime)){
-            alert('Time slot already taken');
-            return;
-          }
+          
 
           const draftEvent = {
-            startTime: startDateTime.toISOString().slice(0, 19),
-            endTime: endDateTime.toISOString().slice(0, 19),
+            startTime: this.toLocalDateTimeString( startDateTime),
+            endTime: this.toLocalDateTimeString(endDateTime),
 
             name: this.selectedTimePref.candidate_name,
             lastname: this.selectedTimePref.canddiate_lastname,
@@ -528,6 +529,11 @@ export default {
             accepted: false,
             isDraft: true
           };
+
+          if(this.isTimeSlotTaken(startDateTime,endDateTime)){
+            alert('Time slot already taken');
+            return;
+          }
 
            this.draftEvents.push(draftEvent);
 
@@ -573,8 +579,8 @@ export default {
         return;
       }
 
-    this.editingEvent.startTime = start.toISOString().slice(0, 19);
-    this.editingEvent.endTime = end.toISOString().slice(0, 19);
+    this.editingEvent.startTime = this.toLocalDateTimeString(start);
+    this.editingEvent.endTime = this.toLocalDateTimeString(end);
 
 
       if(!this.editingEvent.isDraft){
