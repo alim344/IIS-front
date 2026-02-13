@@ -10,21 +10,67 @@
                 <button class = "log button" @click="navigateToHomePage">Log out</button>
             </div>
         </header>
-        <div class="brisiteovo">
-            <h1>CANDIDATE</h1>
+
+        <div class="main-container">
+            <aside class="sidebar">
+                <nav class="sidebar-nav">
+                    <ul>
+                        <li 
+                            v-for="tab in tabs" 
+                            :key="tab.id"
+                            :class="{ 'active': activeComponent === tab.component }"
+                            @click="setActiveComponent(tab.component)"
+                        >
+                            <span class="nav-text">{{ tab.text }}</span>
+                        </li>
+                    </ul>
+                </nav>
+            </aside>
+
+            <main class="content-area">
+                <div class="content-wrapper">
+                    <component :is="activeComponent" />
+                </div>
+            </main>
         </div>
     </div>
 </template>
 
 <script>
+//import CandidateScheduleComponent from '@/components/CandidateComponents/CandidateScheduleComponent.vue';
+//import CandidateProgressComponent from '@/components/CandidateComponents/CandidateProgressComponent.vue';
+import CandidateProfileComponent from '@/components/CandidateComponents/CandidateProfileComponent.vue';
 
 export default {
-    methods:{
+  name: 'CandidateHomeView',
+    
+    components: {
+        //CandidateScheduleComponent,
+        //CandidateProgressComponent,
+        CandidateProfileComponent
+    },
+
+    data() {
+        return {
+            activeComponent: 'CandidateProfileComponent',
+            tabs: [
+                { id: 1, text: 'My Profile', component: 'CandidateProfileComponent' },
+                //{ id: 2, text: 'My Progress', component: 'CandidateProgressComponent' },
+                //{ id: 3, text: 'Schedule', component: 'CandidateScheduleComponent' }
+            ]
+        };
+    },  
+  
+  methods:{
         navigateToHomePage(){
             localStorage.removeItem('token');
             localStorage.removeItem('role');
 
             this.$router.push('/');
+        },
+
+        setActiveComponent(component) {
+            this.activeComponent = component;
         }
     }
 }
@@ -93,7 +139,77 @@ export default {
   box-shadow: 0 0 20px rgba(199, 147, 221, 0.8); /* Blue glow */
 }
 
-.brisiteovo{
-    margin-top: 150px;
+.main-container {
+    display: flex;
+    min-height: calc(100vh - 80px);
+    margin-top: 80px;
+}
+
+.sidebar {
+    width: 250px;
+    background: linear-gradient(180deg, #3a283c 0%, #2c1f2d 100%);
+    color: white;
+    position: fixed;
+    height: calc(100vh - 80px);
+    left: 0;
+    top: 80px;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    overflow-y: auto;
+}
+
+.sidebar-nav {
+    flex: 1;
+    padding: 20px 0;
+}
+
+.sidebar-nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar-nav li {
+    padding: 15px 25px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    margin: 5px 10px;
+    border-radius: 8px;
+}
+
+.sidebar-nav li:hover {
+    background-color: rgba(190, 143, 233, 0.2);
+    transform: translateX(5px);
+}
+
+.sidebar-nav li.active {
+    background-color: rgb(190, 143, 233);
+    color: #2c1f2d;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(190, 143, 233, 0.3);
+}
+
+.nav-text {
+    font-size: 1rem;
+}
+
+.content-area {
+    flex: 1;
+    margin-left: 250px;
+    padding: 20px;
+    background-color: #f5f5f7;
+    min-height: calc(100vh - 80px);
+}
+
+.content-wrapper {
+    background-color: white;
+    padding: 25px;
+    border-radius: 10px;
+    min-height: calc(100vh - 180px);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 </style>
