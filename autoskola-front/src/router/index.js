@@ -1,7 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
 
-// Import your components here
-//import HelloWorld from '@/components/HelloWorld.vue'; // Update path if necessary
 import HomeView from '@/view/HomeView/HomeView.vue'
 import RegistrationView from '@/view/RegistrationView.vue';
 import LoginView from '@/view/LoginView.vue';
@@ -22,6 +20,7 @@ import AdminVehiclesComponent from "@/components/AdminComponents/AdminVehiclesCo
 import InstructorDetailsComponent from "@/components/AdminComponents/InstructorDetailsComponent.vue";
 import ProfessorDetailsComponent from "@/components/AdminComponents/ProfessorDetailsComponent.vue";
 import VehicleDetailsComponent from "@/components/AdminComponents/VehicleDetailsComponent.vue";
+import InstructorVehicleComponent from "@/components/InstructorComponents/InstructorVehicleComponent.vue";
 
 
 const routes = [
@@ -56,6 +55,7 @@ const routes = [
   {path:'/instructorProfile', component:InstructorProfileComponent, props: true},
   {path:'/instructorTrends', component:InstructorTrendsComponent, props:true},
   {path:'/makeschedule', component: MakeScheduleComponent, props:true},
+  {path:'/vehicle', component: InstructorVehicleComponent, props:true}
  
 ];
 

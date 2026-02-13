@@ -49,6 +49,7 @@ import ClassTrackingComponent from '@/components/InstructorComponents/ClassTrack
 import InstructorTrendsComponent from '@/components/InstructorComponents/InstructorTrendsComponent.vue';
 import InstructorProfileComponent from '@/components/InstructorComponents/InstructorProfileComponent.vue';
 import MakeScheduleComponent from '@/components/InstructorComponents/MakeScheduleComponent.vue';
+import InstructorVehicleComponent from "@/components/InstructorComponents/InstructorVehicleComponent.vue";
 
 export default {
     name: 'InstructorDashboard',
@@ -59,6 +60,7 @@ export default {
         InstructorTrendsComponent,
         InstructorProfileComponent,
         MakeScheduleComponent,
+        InstructorVehicleComponent
     },
 
     data() {
@@ -71,6 +73,7 @@ export default {
                 { id: 3, text: 'Class Tracking', component: 'ClassTrackingComponent' },
                 { id: 4, text: 'Trends', component: 'InstructorTrendsComponent'},
                 { id: 5, text: 'Profile', component: 'InstructorProfileComponent' },
+                { id: 6, text: 'Vehicle', component: InstructorVehicleComponent}
             ]
         };
     },
