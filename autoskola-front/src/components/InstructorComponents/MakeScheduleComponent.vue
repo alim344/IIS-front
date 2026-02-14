@@ -58,7 +58,7 @@
       </div>
 
       <div class="right-panel">
-          <div class="panel-section" v-show="!isEditModalOpen">
+          <div class="panel-section" v-show="!isEditModalOpen && !isCreateModalOpen">
             <!-- Nothing selected -->
             <div v-if="!scheduleMode">
             <h4>No action selected</h4>
@@ -155,19 +155,50 @@
               </div>
 
               <div class="actions">
-    <button class="sidebar-action primary" @click="saveEdit(editingEvent)">
-      Edit
-    </button>
-    <button class="sidebar-action" @click="closeEditModal">
-      Cancel
-    </button>
-    <button class="sidebar-action deletion" @click="deleteClass(editingEvent)">
-      Delete Class
-    </button>
-  </div>
+                <button class="sidebar-action primary" @click="saveEdit(editingEvent)">
+                  Edit
+                </button>
+                <button class="sidebar-action" @click="closeEditModal">
+                  Cancel
+                </button>
+                <button class="sidebar-action deletion" @click="deleteClass(editingEvent)">
+                  Delete Class
+                </button>
+              </div>
 
+        </div>
 
-            
+        <!--CREATE MODAL-->
+        <div class="edit_modal" v-if="isCreateModalOpen"> 
+            <h3>Create class</h3>
+
+            <div v-for="pref in timepref" :key="pref.email" class="pref_card" @click="selectCandidate(pref)" :class="{selected: selectedCandidate=== pref}">
+              <div>{{ pref.candidate_name }} {{ pref.canddiate_lastname }}</div>
+            </div>
+
+              <div class="form_group">
+                <label>Date</label>
+                <input type="date" v-model="classFormData.date" />
+              </div>
+
+              <div class="form_group">
+                <label>Start Time</label>
+                <input type="time" v-model="classFormData.startTime" />
+              </div>
+
+              <div class="form_group">
+                <label>End Time</label>
+                <input type="time" v-model="classFormData.endTime" />
+              </div>
+
+              <div class="actions">
+                <button class="sidebar-action primary" @click="saveAClass(selectedCandidate)">
+                  Save
+                </button>
+                <button class="sidebar-action" @click="closeCreateModal">
+                  Cancel
+                </button>
+              </div>
 
         </div>
 
@@ -229,14 +260,11 @@ export default {
       classFormData:{
         startTime:null,
         endTime:null,
-
-        name:"",
-        lastname:"",
-        email:"",
-        category:"",
-        accepted:"",
+        date:null,
       },
       isEditModalOpen: false,
+      isCreateModalOpen:false,
+      selectedCandidate: false,
       editingEvent:null,
       editForm: {
         date: null,
@@ -246,6 +274,7 @@ export default {
         lastname: "",
         category: ""
       },
+      
        
      
     };
@@ -305,10 +334,10 @@ export default {
       }
 
        const selected = new Date(
-    this.selectedDay.year,
-    this.selectedDay.month,   
-    this.selectedDay.date     
-  );
+        this.selectedDay.year,
+        this.selectedDay.month,   
+        this.selectedDay.date     
+      );
 
 
     return this.timepref.filter(item => {
@@ -345,7 +374,17 @@ export default {
 
       return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00`;
     },
+    getTimePrefs(){
+       const token = localStorage.getItem("token");
 
+            if(token){
+              axios.get('http://localhost:8080/time_pref/get_by_inst_id', 
+              {headers:{Authorization: `Bearer ${token}`}})
+                .then(response => {this.timepref = response.data})
+                .catch(error => { console.error("Fetch error:", error); })
+            }
+    }
+,
     selectMode(mode) {
         this.scheduleMode = mode;
         this.showScheduleModal = false;
@@ -354,14 +393,7 @@ export default {
         this.draftEvents = [];
         
          if ((mode === 'manual' || mode === 'alg') && this.timepref.length === 0) {
-            const token = localStorage.getItem("token");
-
-            if(token){
-              axios.get('http://localhost:8080/time_pref/get_by_inst_id', 
-              {headers:{Authorization: `Bearer ${token}`}})
-                .then(response => {this.timepref = response.data})
-                .catch(error => { console.error("Fetch error:", error); })
-            }
+            this.getTimePrefs();
          }
 
     },
@@ -462,8 +494,22 @@ export default {
     },
 
     addEventAtTime(day, time) {
-      alert(`Add event on ${day.name} at ${time}`);
-    },
+      this.isCreateModalOpen = true;
+      this.getTimePrefs();
+      
+       const date = new Date(day.fullDate);
+      this.classFormData.date = date.toISOString().slice(0, 10);
+
+      
+      const parsed = new Date(`1970-01-01 ${time}`);
+      const hours = parsed.getHours().toString().padStart(2, "0");
+      const minutes = parsed.getMinutes().toString().padStart(2, "0");
+
+      this.classFormData.startTime = `${hours}:${minutes}`;
+      this.classFormData.endTime = null;
+
+      
+      },
 
     selectTimePref(item){
       this.selectedTimePref = item;
@@ -494,12 +540,54 @@ export default {
           }
 
           return false; 
-  },
+   },
 
+   saveAClass(){
+      
+        if(this.selectedCandidate == null){
+          alert('Select a candidate')
+          return;
+        }
+
+        if (!this.classFormData.date || 
+          !this.classFormData.startTime || 
+          !this.classFormData.endTime) {
+        alert("Please fill all fields");
+        return;
+      }
+
+
+        const newStartDate = new Date(`${this.classFormData.date}T${this.classFormData.startTime}`);
+        const newEndDate = new Date(`${this.classFormData.date}T${this.classFormData.endTime}`);
+
+        const oneClass=
+          {  email : this.selectedCandidate.email,
+             startTime :this.toLocalDateTimeString(newStartDate),
+             endTime : this.toLocalDateTimeString(newEndDate),}
+        
+
+        const token = localStorage.getItem('token');
+
+        if(token){
+          axios.post('http://localhost:8080/practicalclass/saveClass',oneClass,
+          { headers: { Authorization: `Bearer ${token}` }})
+          .then(() => {
+                this.$emit('refreshEvents');
+                this.closeCreateModal();
+
+        })
+            .catch(error => {
+                console.error("Fetch error:", error);
+            });
+        }
+
+
+
+   },
 
     createClass(){
 
-        if(!this.selectTimePref){
+        if(!this.selectTimePref()){
           alert('Select a candidate')
           return;
         }
@@ -547,6 +635,7 @@ export default {
       this.isEditModalOpen = false;
       this.editingEvent = null;
     },
+
     saveEdit(){
 
       if (!this.editForm.date || !this.editForm.startTime || !this.editForm.endTime) {
@@ -667,7 +756,17 @@ export default {
 
 
 
-    }
+    },
+    selectCandidate(pref){
+      this.selectedCandidate = pref;
+    },
+    closeCreateModal(){
+                this.isCreateModalOpen = false;
+                this.selectedCandidate= null;
+                this.classFormData.date = null;
+                this.classFormData.startTime = null;
+                this.classFormData.endTime = null;
+    },
    
 
   },
@@ -1089,6 +1188,8 @@ export default {
   color: #333;
 
 }
+
+
 
 
 .form_group{

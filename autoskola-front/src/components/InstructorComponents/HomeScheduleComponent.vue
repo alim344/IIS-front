@@ -27,7 +27,7 @@
           </div>
 
           <div v-for="day in days" :key="'col-' + day.date" class="day-column">
-            <div v-for="time in times" :key="time" class="time-cell" @click="addEventAtTime(day, time)"></div>
+            <div v-for="time in times" :key="time" class="time-cell"></div>
 
             <div 
               v-for="event in getEventsForDay(day)" 
