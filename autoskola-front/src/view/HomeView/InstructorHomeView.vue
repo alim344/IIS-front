@@ -35,7 +35,7 @@
                 <div class="content-wrapper">
                     <component :is="activeComponent" 
                     :events="events"
-                    @update-events="events = $event"/>
+                    @refreshEvents="fetchEvents"/>
                 </div>
             </main>
         </div>
@@ -89,17 +89,25 @@ export default {
         
         setActiveComponent(component) {
             this.activeComponent = component;
+        },
+        fetchEvents() {
+            const token = localStorage.getItem("token");
+
+            if (token) {
+            axios.get('http://localhost:8080/practicalclass/fullschedule', {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+            .then(response => {
+                this.events = response.data;
+            })
+            .catch(error => {
+                console.error("Fetch error:", error);
+            });
+            }
         }
     },
     mounted(){
-        const token = localStorage.getItem("token");
-        if(token) {
-        axios.get('http://localhost:8080/practicalclass/fullschedule', { 
-            headers: { Authorization: `Bearer ${token}` }
-        })
-        .then(response => { this.events = response.data; })
-        .catch(error => { console.error("Fetch error:", error); });
-        }
+       this.fetchEvents();
     }
 
    

@@ -1,61 +1,27 @@
 <template>
-  <div class="weekly-calendar-container">
-    <div class="calendar-header">
-        <div class="calendar-navigation">
-            <button class="nav-btn" @click="previousWeek">&lt;</button>
-            <button class="today-btn" @click="goToToday">Today</button>
-            <button class="nav-btn" @click="nextWeek">&gt;</button>
-            <h2 class="current-week">{{ weekRange }}</h2>
-        </div>
-
-        <div class="header-action">
-            <button class="create-button" @click="showModal">CREATE NEXT WEEK SCHEDULE</button>
-        </div>
-     </div>
-
-
-    <div class="calendar-grid">
-      <div class="calendar-content">
-        <div class="day-headers">
-          <div class="time-header-spacer"></div>
-          <div v-for="day in days" :key="day.date" class="day-header" :class="{ 'today': day.isToday }">
-            <div class="day-name">{{ day.name }}</div>
-            <div class="day-date">{{ day.date }}</div>
-          </div>
-        </div>
-
-        <div class="time-grid">
-          <div class="time-labels">
-            <div v-for="time in times" :key="time" class="time-label">
-              {{ time }}
-            </div>
-          </div>
-
-          <div v-for="day in days" :key="'col-' + day.date" class="day-column">
-            <div v-for="time in times" :key="time" class="time-cell" @click="addEventAtTime(day, time)"></div>
-
-            <div 
-              v-for="event in getEventsForDay(day)" 
-              :key="event.startTime + event.email" 
-              class="compact-event"
-              :class="getEventStatus(event)"
-              :style="getEventStyle(event)"
-              @click.stop="selectEvent(event)"
-            >
-              <div class="event-time">{{ formatEventTime(event) }}</div>
-              <div class="event-title">{{ event.name }} {{ event.lastname }}</div>
-              <div>{{ event.category }}</div>
-              <div class="event-status">
-                {{ getEventStatusText(event) }}
-              </div>
-              
-            </div>
-          </div>
-        </div>
-      </div>
+  <div>
+    <div class="calendar-layout">
+      <WeeklyCalendar
+        :events="[...this.events,...this.draftEvents]"
+        @event-click="selectEvent"
+        @cell-click="addEventAtTime" 
+      >
+        <template #event="{ event }">
+          <div class="event-time">{{ formatEventTime(event) }}</div>
+          <div class="event-title">{{ event.name }} {{ event.lastname || '' }}</div>
+          <div>{{ event.category }}</div>
+          <div class="event-status">{{ getEventStatusText(event) }}</div>
+        </template>
+      </WeeklyCalendar>
 
       <div class="right-panel">
-          <div class="panel-section">
+        <div class="header-action">
+            <button v-if="scheduleMode!=null" class="cancel_button" @click="cancelSchedule">CANCEL</button>
+            <button v-if="scheduleMode!=null" class="save_button" @click="saveSchedule">SAVE SCHEDULE </button>
+            <button class="create-button" v-if="!scheduleMode" @click="showModal">CREATE NEXT WEEK SCHEDULE</button>
+            
+        </div>
+          <div class="panel-section" v-show="!isEditModalOpen && !isCreateModalOpen">
             <!-- Nothing selected -->
             <div v-if="!scheduleMode">
             <h4>No action selected</h4>
@@ -71,14 +37,47 @@
             </div>
 
             <!-- MANUAL MODE -->
-            <div v-else-if="scheduleMode === 'manual'">
-              <h4>Manual scheduling</h4>
-                <form class="class-form"> 
+            <div v-else-if="scheduleMode === 'manual'" >
+                <div class="manual_header"> 
+                  <h4 class="manual_title">Manual scheduling</h4>
+                </div>
+
+                <form class="class-form" @submit.prevent="createClass"> 
                   <h5>Create a class</h5>
                   
-                  
-                
+                      <label class="form-label">Filter prefrences by day</label>
+                      <select v-model="selectedDay" class="day_select">
+                        <option value="">All days</option>
+                        <option v-for="day in days" :key="day" :value="day">{{ day.date }} {{ day.name }}</option>
+                      </select>
 
+                      <div class="timepref_list">
+                        <div v-for="item in filteredItems" :key="item.email" class="pref_card" @click="selectTimePref(item)" :class="{selected: selectedTimePref=== item}">
+                          <div>{{ item.candidate_name }} {{ item.canddiate_lastname }}</div>
+                          <div class="timepref_date">{{ item.date }}   {{ item.startTime }} -{{ item.endTime }}</div>
+                        </div>
+                      </div>
+
+                      <div class="form_group"> 
+                        <label for="startTime">Start Time:</label>
+                        <input 
+                        type="time"
+                        key="startTime" v-model="classFormData.startTime" required
+                        step="900"
+                        />
+                      </div>
+
+                      <div class="form_group"> 
+                        <label for="endTime">End Time:</label>
+                        <input 
+                        type="time"
+                        key="endTime" v-model="classFormData.endTime" required
+                        step="900"
+                        />
+                      </div>
+                    
+
+                  
                 <button class="sidebar-action primary">Add class</button>
                 </form>
             
@@ -92,6 +91,79 @@
             
             </div>
           </div>
+
+           <!--EDIT MODAL-->
+        <div class="edit_modal" v-if="isEditModalOpen"> 
+            <h3>Edit class</h3>
+
+            <div class="candidate_info">
+              <div>Name: {{ editForm.name }}</div>
+              <div>Lastname: {{ editForm.lastname }}</div>
+              <div>Category: {{ editForm.category }}</div>
+            </div>
+
+              <div class="form_group">
+                <label>Date</label>
+                <input type="date" v-model="editForm.date" />
+              </div>
+
+              <div class="form_group">
+                <label>Start Time</label>
+                <input type="time" v-model="editForm.startTime" />
+              </div>
+
+              <div class="form_group">
+                <label>End Time</label>
+                <input type="time" v-model="editForm.endTime" />
+              </div>
+
+              <div class="actions">
+                <button class="sidebar-action primary" @click="saveEdit(editingEvent)">
+                  Edit
+                </button>
+                <button class="sidebar-action" @click="closeEditModal">
+                  Cancel
+                </button>
+                <button class="sidebar-action deletion" @click="deleteClass(editingEvent)">
+                  Delete Class
+                </button>
+              </div>
+
+        </div>
+
+        <!--CREATE MODAL-->
+        <div class="edit_modal" v-if="isCreateModalOpen"> 
+            <h3>Create class</h3>
+
+            <div v-for="pref in timepref" :key="pref.email" class="pref_card" @click="selectCandidate(pref)" :class="{selected: selectedCandidate=== pref}">
+              <div>{{ pref.candidate_name }} {{ pref.canddiate_lastname }}</div>
+            </div>
+
+              <div class="form_group">
+                <label>Date</label>
+                <input type="date" v-model="classFormData.date" />
+              </div>
+
+              <div class="form_group">
+                <label>Start Time</label>
+                <input type="time" v-model="classFormData.startTime" />
+              </div>
+
+              <div class="form_group">
+                <label>End Time</label>
+                <input type="time" v-model="classFormData.endTime" />
+              </div>
+
+              <div class="actions">
+                <button class="sidebar-action primary" @click="saveAClass(selectedCandidate)">
+                  Save
+                </button>
+                <button class="sidebar-action" @click="closeCreateModal">
+                  Cancel
+                </button>
+              </div>
+
+        </div>
 
       </div>
     </div>
@@ -118,12 +190,16 @@
         </div>
         </div>
 
+       
+
   </div>
 </template>
 
 <script>
-
+import axios from 'axios';
+import WeeklyCalendar from '../WeeklyCalendar.vue';
 export default {
+  components: {  WeeklyCalendar},
     props:{
         events: {
         type: Array,
@@ -134,20 +210,42 @@ export default {
     return {
       currentDate: new Date(),
       selectedEvent: null,
-      rowHeight: 60, // Matches CSS height
+      rowHeight: 60, 
       startHour: 8,  
       times: ['8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', 
               '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM'],
 
        showScheduleModal: false,
        scheduleMode: null,  // manual i alg i copy old
-
+       draftEvents: [],
+       timepref: [],
+      selectedDay:null,
+      selectedTimePref:null,
+      classFormData:{
+        startTime:null,
+        endTime:null,
+        date:null,
+      },
+      isEditModalOpen: false,
+      isCreateModalOpen:false,
+      selectedCandidate: null,
+      editingEvent:null,
+      editForm: {
+        date: null,
+        startTime: null,
+        endTime: null,
+        name: "",
+        lastname: "",
+        category: ""
+      },
+      
+       
      
     };
   },
 
   computed: {
-    days() {
+     days() {
       const daysArray = [];
       const today = new Date(this.currentDate);
       const dayOfWeek = today.getDay();
@@ -169,41 +267,80 @@ export default {
       }
       return daysArray;
     },
+   
+    filteredItems(){
+      if (!this.selectedDay) {
+        return this.timepref; 
+      }
 
-    weekRange() {
-      const start = this.days[0];
-      const end = this.days[6];
-      return `${start.monthName} ${start.date} - ${end.date}, ${start.year}`;
+       const selected = new Date(
+        this.selectedDay.year,
+        this.selectedDay.month,   
+        this.selectedDay.date     
+      );
+
+
+    return this.timepref.filter(item => {
+      const itemDate = new Date(item.date);
+      return itemDate.toDateString() === selected.toDateString();
+    });
     }
 
   },
 
   methods: {
-    previousWeek() {
-      const d = new Date(this.currentDate);
-      d.setDate(d.getDate() - 7);
-      this.currentDate = d;
-    },
-    nextWeek() {
-      const d = new Date(this.currentDate);
-      d.setDate(d.getDate() + 7);
-      this.currentDate = d;
-    },
-    goToToday() {
-      this.currentDate = new Date();
-    },
+    
+   
     showModal(){
         this.showScheduleModal = true;
     },
     closeModal(){
         this.showScheduleModal = false;
     },
+    toLocalDateTimeString(date) {
+      const pad = n => n.toString().padStart(2, '0');
+
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00`;
+    },
+    getTimePrefs(){
+       const token = localStorage.getItem("token");
+
+            if(token){
+              axios.get('http://localhost:8080/time_pref/get_by_inst_id', 
+              {headers:{Authorization: `Bearer ${token}`}})
+                .then(response => {this.timepref = response.data})
+                .catch(error => { console.error("Fetch error:", error); })
+            }
+    }
+,
     selectMode(mode) {
         this.scheduleMode = mode;
         this.showScheduleModal = false;
+
+        this.currentDate = this.getNextMonday()
+        this.draftEvents = [];
+        
+         if ((mode === 'manual' || mode === 'alg') && this.timepref.length === 0) {
+            this.getTimePrefs();
+         }
+
+    },
+
+    getNextMonday(date = new Date()){
+      const d = new Date(date);
+      const day = d.getDay();  // 0- Sunday, 1-Monday
+
+        const diffToMonday = day === 0 ? -6 : 1 - day;
+        d.setDate(d.getDate() + diffToMonday);
+
+        
+        d.setDate(d.getDate() + 7);
+
+        d.setHours(0, 0, 0, 0);
+        return d;
     },
     getEventsForDay(day) {
-      return this.events.filter(event => {
+      return [...this.events,...this.draftEvents].filter(event => {
         const eventDate = new Date(event.startTime);
         return eventDate.getDate() === day.date &&
                eventDate.getMonth() === day.month &&
@@ -211,6 +348,8 @@ export default {
       });
     },
     getEventStatus(event){
+
+      if (event.isDraft) return 'future-pending';
         const now = new Date();
         const start = new Date(event.startTime);
         const end = new Date(event.endTime);
@@ -256,62 +395,346 @@ export default {
       const end = new Date(event.endTime).toLocaleTimeString([], options);
       return `${start} - ${end}`;
     },
+    canEditEvent(event) {
+        const now = new Date();
+        const eventEnd = new Date(event.endTime);
+        return event.isDraft || (!event.accepted && eventEnd > now);
+      },
 
     selectEvent(event) {
-      this.selectedEvent = event;
+      
+      if (!this.canEditEvent(event)) return;
+
+      this.editingEvent = event;
+      this.isEditModalOpen = true;
+
+      const start = new Date(event.startTime);
+      const end = new Date(event.endTime);
+
+      this.editForm.date = start.toISOString().slice(0, 10);
+      this.editForm.startTime = start.toTimeString().slice(0, 5);
+      this.editForm.endTime = end.toTimeString().slice(0, 5);
+
+      this.editForm.name = event.name;
+      this.editForm.lastname = event.lastname;
+      this.editForm.category = event.category;
+
     },
 
-    addEventAtTime(day, time) {
-      alert(`Add event on ${day.name} at ${time}`);
-    }
+    addEventAtTime({day, time}) {
+      
+      
+       const date = new Date(day.fullDate);
+      
+
+      
+      const parsed = new Date(`1970-01-01 ${time}`);
+      const hours = parsed.getHours().toString().padStart(2, "0");
+      const minutes = parsed.getMinutes().toString().padStart(2, "0");
+
+
+      const startDateTime = new Date(date);
+      startDateTime.setHours(hours, minutes, 0, 0);
+
+      if (startDateTime <= new Date()) {
+        alert("Start time must be in the future");
+        return;
+      }
+      this.isCreateModalOpen = true;
+      this.getTimePrefs();
+
+      this.classFormData.date = date.toISOString().slice(0, 10);
+
+      this.classFormData.startTime = `${hours}:${minutes}`;
+      this.classFormData.endTime = null;
+
+      
+      },
+
+    selectTimePref(item){
+
+      if (!item) return;
+      this.selectedTimePref = item;
+
+      this.classFormData.startTime = item.startTime;
+      this.classFormData.endTime = item.endTime;
+    },
+
+     isTimeSlotTaken(newStart, newEnd) {
+
+          const allEvents = [...this.events, ...this.draftEvents];
+
+          const sameDateEvents = allEvents.filter(event => {
+            const start = new Date(event.startTime);
+             return (
+              start.toDateString() === newStart.toDateString() &&
+              (!this.editingEvent || event.id !== this.editingEvent.id)
+            );
+          });
+
+          for (const event of sameDateEvents) {
+            const start = new Date(event.startTime);
+            const end = new Date(event.endTime);
+
+            if (newStart < end && newEnd > start) {
+              return true; 
+            }
+          }
+
+          return false; 
+   },
+
+   saveAClass(){
+      
+        if(this.selectedCandidate == null){
+          alert('Select a candidate')
+          return;
+        }
+
+        if (!this.classFormData.date || 
+          !this.classFormData.startTime || 
+          !this.classFormData.endTime) {
+        alert("Please fill all fields");
+        return;
+      }
+
+
+        const newStartDate = new Date(`${this.classFormData.date}T${this.classFormData.startTime}`);
+        const newEndDate = new Date(`${this.classFormData.date}T${this.classFormData.endTime}`);
+
+        const oneClass=
+          {  email : this.selectedCandidate.email,
+             startTime :this.toLocalDateTimeString(newStartDate),
+             endTime : this.toLocalDateTimeString(newEndDate),}
+        
+
+        const token = localStorage.getItem('token');
+
+        if(token){
+          axios.post('http://localhost:8080/practicalclass/saveClass',oneClass,
+          { headers: { Authorization: `Bearer ${token}` }})
+          .then(() => {
+                this.$emit('refreshEvents');
+                this.closeCreateModal();
+
+        })
+            .catch(error => {
+                console.error("Fetch error:", error);
+            });
+        }
+
+
+
+   },
+
+    createClass(){
+
+        if(!this.selectedTimePref){
+          alert('Select a candidate')
+          return;
+        }
+
+          const day = new Date(this.selectedTimePref.date);
+
+          const [startHour, startMinute] = this.classFormData.startTime.split(":");
+          const [endHour, endMinute] = this.classFormData.endTime.split(":");
+
+          const startDateTime = new Date(day);
+          startDateTime.setHours(startHour, startMinute, 0, 0);
+
+          const endDateTime = new Date(day);
+          endDateTime.setHours(endHour, endMinute, 0, 0);
+
+          
+
+          const draftEvent = {
+            startTime: this.toLocalDateTimeString( startDateTime),
+            endTime: this.toLocalDateTimeString(endDateTime),
+
+            name: this.selectedTimePref.candidate_name,
+            lastname: this.selectedTimePref.canddiate_lastname,
+            email: this.selectedTimePref.email,
+            category: this.selectedTimePref.category,
+
+            accepted: false,
+            isDraft: true
+          };
+
+          if(this.isTimeSlotTaken(startDateTime,endDateTime)){
+            alert('Time slot already taken');
+            return;
+          }
+
+           this.draftEvents.push(draftEvent);
+
+           
+            this.selectedTimePref = null;
+            this.classFormData.startTime = null;
+            this.classFormData.endTime = null;
+
+    },
+    closeEditModal() {
+      this.isEditModalOpen = false;
+      this.editingEvent = null;
+    },
+
+    saveEdit(){
+
+      if (!this.editForm.date || !this.editForm.startTime || !this.editForm.endTime) {
+        alert("Please fill all fields");
+        return;
+      }
+
+      const start = new Date(this.editForm.date);
+      const [sh, sm] = this.editForm.startTime.split(":");
+      start.setHours(sh, sm, 0, 0);
+
+      const end = new Date(this.editForm.date);
+      const [eh, em] = this.editForm.endTime.split(":");
+      end.setHours(eh, em, 0, 0);
+
+      const now = new Date();
+
+      if (start <= now) {
+        alert("Start time must be in the future");
+        return;
+      }
+
+      if (end <= start) {
+        alert("End time must be after start time");
+        return;
+      }
+
+       if (this.isTimeSlotTaken(start, end, this.editingEvent)) {
+        alert("Time slot already taken!");
+        return;
+      }
+
+    this.editingEvent.startTime = this.toLocalDateTimeString(start);
+    this.editingEvent.endTime = this.toLocalDateTimeString(end);
+
+
+      if(!this.editingEvent.isDraft){
+
+       axios.patch(`http://localhost:8080/practicalclass/updateDateTime`, this.editingEvent)
+        .then(() => {
+          console.log("Class updated successfully!");
+          this.closeEditModal();
+        })
+        .catch(error => {
+          if (error.response && error.response.status === 409) {
+             alert("Update conflict occurred! Please adjust the time.");
+            console.warn("Update conflict occurred!");
+          } else {
+            console.error("Error updating class:", error);
+          }
+        });
+
+      }else{
+        this.closeEditModal();
+      }
+
+      
+    },
+    async deleteClass(event){
+
+        if (event.isDraft) {
+          this.draftEvents = this.draftEvents.filter(e => e !== event);
+          
+          this.closeEditModal();
+          return;
+        }
+
+        const id = event.id;
+
+
+        try {
+          await axios.delete(`http://localhost:8080/practicalclass/deleteById/${id}`);
+           this.$emit('refreshEvents');
+          this.closeEditModal();
+          console.log("Deleted and removed from events list");
+          return;
+        } catch (error) {
+          console.error("Error deleting:", error);
+        }
+       
+
+    },
+    cancelSchedule(){
+      this.draftEvents = [];
+      this.showScheduleModal= false;
+      this.scheduleMode= null; 
+      this.selectedDay=null;
+      this.selectedTimePref=null;
+
+    },
+    saveSchedule(){
+      if(this.draftEvents.length == 0){
+        return;
+      }
+
+      const drafts = this.draftEvents.map(e => ({
+        email: e.email,
+        startTime: e.startTime,
+        endTime: e.endTime,
+      }));
+
+      const token = localStorage.getItem('token');
+      
+
+     axios.post('http://localhost:8080/practicalclass/manual_schedule/save', drafts, { headers: { Authorization: `Bearer ${token}` }})
+    .then(res => {
+      console.log('Drafts saved successfully', res.data);
+
+      this.draftEvents = [];
+
+      this.$emit('refreshEvents');
+
+      this.showScheduleModal= false;
+      this.scheduleMode= null; 
+    })
+    .catch(err => console.error(err));
+
+
+
+    },
+    selectCandidate(pref){
+      this.selectedCandidate = pref;
+    },
+    closeCreateModal(){
+                this.isCreateModalOpen = false;
+                this.selectedCandidate= null;
+                this.classFormData.date = null;
+                this.classFormData.startTime = null;
+                this.classFormData.endTime = null;
+    },
+   
+
   },
 };
 </script>
 
 <style scoped>
-/* Root Variables for perfect alignment */
-.weekly-calendar-container {
-  --time-col-width: 85px;
-  --row-height: 60px;
-  --border-color: #e0e0e0;
-  
-  height: calc(100vh - 120px);
+.calendar-layout {
   display: flex;
-  flex-direction: column;
-  background: white;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  height: calc(100vh - 120px);
+  width: 100%;
 }
 
-.calendar-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px 20px;
-  border-bottom: 1px solid var(--border-color);
+.calendar-layout :deep(.weekly-calendar-container) {
+  flex: 3;
 }
 
 .header-action {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 20px auto 30px auto;
+  
 }
 
 
-
-.calendar-navigation {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.nav-btn, .today-btn {
-  padding: 6px 14px;
-  border-radius: 6px;
-  border: 1px solid var(--border-color);
-  background: #fff;
-  cursor: pointer;
-  color: #9C27B0;
-  font-weight: 600;
-}
 
 .create-button {
   background: rgb(190, 143, 233);
@@ -328,88 +751,36 @@ export default {
   background: #3a283c;
 }
 
-
-.current-week {
-  margin-left: 10px;
-  color: #555;
-  font-size: 1.1rem;
+.save_button{
+  background: rgb(101, 164, 111);
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
 }
 
-.calendar-grid {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
+.save_button:hover{
+  background: #1b5e20;
 }
 
-.calendar-content {
-  flex: 3;
-  display: flex;
-  flex-direction: column;
-  border-right: 1px solid var(--border-color);
+.cancel_button{
+   background: rgb(194, 102, 102);
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
 }
 
-/* Day Headers - Synced with Grid */
-.day-headers {
-  display: grid;
-  grid-template-columns: var(--time-col-width) repeat(7, 1fr);
-  background: #fcfcfc;
-  border-bottom: 1px solid var(--border-color);
-  /* Accounts for the scrollbar in the grid below */
-  padding-right: 17px; 
+.cancel_button:hover{
+  background: rgb(98, 31, 31);
 }
 
-.time-header-spacer {
-  border-right: 1px solid var(--border-color);
-}
-
-.day-header {
-  padding: 12px 0;
-  text-align: center;
-  border-right: 1px solid #eee;
-}
-
-.day-header.today {
-  background: #f9f2fb;
-  box-shadow: inset 0 -2px 0 #9C27B0;
-}
-
-.day-name { font-size: 11px; color: #888; }
-.day-date { font-size: 18px; font-weight: bold; color: #333; }
-
-/* Scrollable Grid Area */
-.time-grid {
-  display: grid;
-  grid-template-columns: var(--time-col-width) repeat(7, 1fr);
-  flex: 1;
-  overflow-y: scroll; /* Force scrollbar to prevent header jumping */
-  position: relative;
-}
-
-.time-labels {
-  border-right: 1px solid var(--border-color);
-  background: #fff;
-}
-
-.time-label {
-  height: var(--row-height);
-  box-sizing: border-box;
-  border-bottom: 1px solid #f0f0f0;
-  padding: 4px 10px 0 0;
-  text-align: right;
-  font-size: 12px;
-  color: #999;
-}
-
-.day-column {
-  position: relative; /* Base for event positioning */
-  border-right: 1px solid #f0f0f0;
-}
-
-.time-cell {
-  height: var(--row-height);
-  box-sizing: border-box;
-  border-bottom: 1px solid #f0f0f0;
-}
 
 /* Event Styling */
 .compact-event {
@@ -468,6 +839,11 @@ export default {
   max-width: 300px;
   padding: 20px;
   background: #fafafa;
+
+   display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+   position: relative; 
 }
 
 .panel-sections {
@@ -486,6 +862,8 @@ export default {
   margin: 0 0 15px 0;
   font-size: 1rem;
   font-weight: 600;
+
+
 }
 
 
@@ -548,6 +926,17 @@ export default {
   border: none;
 }
 
+.deletion{
+  background: red;
+  color: white;
+}
+
+.deletion:hover{
+  background: white;
+  color: red;
+  box-shadow:2px solid #9C27B0;
+}
+
 
 .class-form{
   display: flex;
@@ -561,4 +950,135 @@ export default {
   min-height: 250px;
   gap: 15px;  /* Space between child elements */
 }
+
+
+.day_select{
+   width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: white;
+  font-size: 14px;
+  color: #1e293b;
+  transition: all 0.2s;
+}
+
+.manual_header{
+  margin-bottom: 32px;
+}
+
+.manual_title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 8px 0;
+}
+
+.form-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #475569;
+  margin-bottom: 8px;
+}
+
+.timepref_list{
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px #827e88;
+
+  max-height: 300px;      
+  overflow-y: auto;       
+  padding-right: 6px; 
+}
+
+.pref_card{
+  border: 1px solid #000205;
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 5px;
+  transition: all 0.2s;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pref_card:hover{
+  border-radius: 12px;
+  background: #827e88;
+  
+}
+
+.pref_card.selected{
+   border: 2px solid #1b5e20;   /* green border */
+  background-color: #e8f5e9; 
+}
+
+.timepref_date{
+  font-size: small;
+  color: #333;
+
+}
+
+
+
+
+.form_group{
+  padding: 5px;
+  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center ;
+  margin: 10px;
+  border-bottom: 2px solid rgb(168, 147, 159);
+}
+
+.form_group label{
+   display: block;
+  margin-bottom: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #555;
+}
+
+.form_group input{
+   width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.3s;
+}
+
+.edit_modal{
+  position: absolute;
+ 
+  width: 240px;          
+  height: 100%; 
+  background: white;
+  border-left: 1px solid #e0e0e0;
+  box-shadow: -6px 0 20px rgba(0,0,0,0.08);
+  z-index: 900;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+ 
+   
+}
+
+.candidate_info{
+  margin: 10px;
+  margin-top: 0px;
+  padding: 10px;
+  border-bottom:2px solid #4CAF50;
+  display: flex;
+  flex-direction: column;
+}
+
+
+
 </style>
