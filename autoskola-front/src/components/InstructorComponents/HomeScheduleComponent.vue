@@ -14,6 +14,7 @@
     </WeeklyCalendar>
 
     <div class="right-panel">
+      
         <div class="panel-section">
             <h4>Upcoming classes today</h4>
             <div class="upcoming-list">

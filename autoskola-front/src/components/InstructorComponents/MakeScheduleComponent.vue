@@ -1,63 +1,26 @@
 <template>
-  <div class="weekly-calendar-container">
-    <div class="calendar-header">
-        <div class="calendar-navigation">
-            <button class="nav-btn" @click="previousWeek">&lt;</button>
-            <button class="today-btn" @click="goToToday">Today</button>
-            <button class="nav-btn" @click="nextWeek">&gt;</button>
-            <h2 class="current-week">{{ weekRange }}</h2>
-        </div>
+  <div>
+    <div class="calendar-layout">
+      <WeeklyCalendar
+        :events="[...this.events,...this.draftEvents]"
+        @event-click="selectEvent"
+        @cell-click="addEventAtTime" 
+      >
+        <template #event="{ event }">
+          <div class="event-time">{{ formatEventTime(event) }}</div>
+          <div class="event-title">{{ event.name }} {{ event.lastname || '' }}</div>
+          <div>{{ event.category }}</div>
+          <div class="event-status">{{ getEventStatusText(event) }}</div>
+        </template>
+      </WeeklyCalendar>
 
+      <div class="right-panel">
         <div class="header-action">
             <button v-if="scheduleMode!=null" class="cancel_button" @click="cancelSchedule">CANCEL</button>
             <button v-if="scheduleMode!=null" class="save_button" @click="saveSchedule">SAVE SCHEDULE </button>
-            <button class="create-button" @click="showModal">CREATE NEXT WEEK SCHEDULE</button>
+            <button class="create-button" v-if="!scheduleMode" @click="showModal">CREATE NEXT WEEK SCHEDULE</button>
             
         </div>
-     </div>
-
-
-    <div class="calendar-grid">
-      <div class="calendar-content">
-        <div class="day-headers">
-          <div class="time-header-spacer"></div>
-          <div v-for="day in days" :key="day.date" class="day-header" :class="{ 'today': day.isToday }">
-            <div class="day-name">{{ day.name }}</div>
-            <div class="day-date">{{ day.date }}</div>
-          </div>
-        </div>
-
-        <div class="time-grid">
-          <div class="time-labels">
-            <div v-for="time in times" :key="time" class="time-label">
-              {{ time }}
-            </div>
-          </div>
-
-          <div v-for="day in days" :key="'col-' + day.date" class="day-column">
-            <div v-for="time in times" :key="time" class="time-cell" @click="addEventAtTime(day, time)"></div>
-
-            <div 
-              v-for="event in getEventsForDay(day)" 
-              :key="event.startTime + event.email" 
-              class="compact-event"
-              :class="getEventStatus(event)"
-              :style="getEventStyle(event)"
-              @click.stop="selectEvent(event)"
-            >
-              <div class="event-time">{{ formatEventTime(event) }}</div>
-              <div class="event-title">{{ event.name }} {{ event.lastname }}</div>
-              <div>{{ event.category }}</div>
-              <div class="event-status">
-                {{ getEventStatusText(event) }}
-              </div>
-              
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="right-panel">
           <div class="panel-section" v-show="!isEditModalOpen && !isCreateModalOpen">
             <!-- Nothing selected -->
             <div v-if="!scheduleMode">
@@ -234,8 +197,9 @@
 
 <script>
 import axios from 'axios';
+import WeeklyCalendar from '../WeeklyCalendar.vue';
 export default {
-  components: {  },
+  components: {  WeeklyCalendar},
     props:{
         events: {
         type: Array,
@@ -264,7 +228,7 @@ export default {
       },
       isEditModalOpen: false,
       isCreateModalOpen:false,
-      selectedCandidate: false,
+      selectedCandidate: null,
       editingEvent:null,
       editForm: {
         date: null,
@@ -281,7 +245,7 @@ export default {
   },
 
   computed: {
-    days() {
+     days() {
       const daysArray = [];
       const today = new Date(this.currentDate);
       const dayOfWeek = today.getDay();
@@ -303,31 +267,7 @@ export default {
       }
       return daysArray;
     },
-     nextWeekDays() {
-    const daysArray = [];
-    const monday = this.getNextMonday(this.currentDate);
-
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(monday);
-      date.setDate(monday.getDate() + i);
-
-      daysArray.push({
-        name: date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(),
-        date: date.getDate(),
-        month: date.getMonth(),
-        year: date.getFullYear(),
-        fullDate: date
-      });
-    }
-
-    return daysArray;
-  },
-
-    weekRange() {
-      const start = this.days[0];
-      const end = this.days[6];
-      return `${start.monthName} ${start.date} - ${end.date}, ${start.year}`;
-    },
+   
     filteredItems(){
       if (!this.selectedDay) {
         return this.timepref; 
@@ -350,19 +290,7 @@ export default {
 
   methods: {
     
-    previousWeek() {
-      const d = new Date(this.currentDate);
-      d.setDate(d.getDate() - 7);
-      this.currentDate = d;
-    },
-    nextWeek() {
-      const d = new Date(this.currentDate);
-      d.setDate(d.getDate() + 7);
-      this.currentDate = d;
-    },
-    goToToday() {
-      this.currentDate = new Date();
-    },
+   
     showModal(){
         this.showScheduleModal = true;
     },
@@ -493,7 +421,7 @@ export default {
 
     },
 
-    addEventAtTime(day, time) {
+    addEventAtTime({day, time}) {
       this.isCreateModalOpen = true;
       this.getTimePrefs();
       
@@ -512,6 +440,8 @@ export default {
       },
 
     selectTimePref(item){
+
+      if (!item) return;
       this.selectedTimePref = item;
 
       this.classFormData.startTime = item.startTime;
@@ -587,7 +517,7 @@ export default {
 
     createClass(){
 
-        if(!this.selectTimePref()){
+        if(!this.selectedTimePref){
           alert('Select a candidate')
           return;
         }
@@ -722,7 +652,6 @@ export default {
       this.draftEvents = [];
       this.showScheduleModal= false;
       this.scheduleMode= null; 
-      this.goToToday();
       this.selectedDay=null;
       this.selectedTimePref=null;
 
@@ -774,25 +703,14 @@ export default {
 </script>
 
 <style scoped>
-/* Root Variables for perfect alignment */
-.weekly-calendar-container {
-  --time-col-width: 85px;
-  --row-height: 60px;
-  --border-color: #e0e0e0;
-  
-  height: calc(100vh - 120px);
+.calendar-layout {
   display: flex;
-  flex-direction: column;
-  background: white;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  height: calc(100vh - 120px);
+  width: 100%;
 }
 
-.calendar-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px 20px;
-  border-bottom: 1px solid var(--border-color);
+.calendar-layout :deep(.weekly-calendar-container) {
+  flex: 3;
 }
 
 .header-action {
@@ -800,25 +718,11 @@ export default {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  margin: 20px auto 30px auto;
+  
 }
 
 
-
-.calendar-navigation {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.nav-btn, .today-btn {
-  padding: 6px 14px;
-  border-radius: 6px;
-  border: 1px solid var(--border-color);
-  background: #fff;
-  cursor: pointer;
-  color: #9C27B0;
-  font-weight: 600;
-}
 
 .create-button {
   background: rgb(190, 143, 233);
@@ -865,88 +769,6 @@ export default {
   background: rgb(98, 31, 31);
 }
 
-
-.current-week {
-  margin-left: 10px;
-  color: #555;
-  font-size: 1.1rem;
-}
-
-.calendar-grid {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-}
-
-.calendar-content {
-  flex: 3;
-  display: flex;
-  flex-direction: column;
-  border-right: 1px solid var(--border-color);
-}
-
-/* Day Headers - Synced with Grid */
-.day-headers {
-  display: grid;
-  grid-template-columns: var(--time-col-width) repeat(7, 1fr);
-  background: #fcfcfc;
-  border-bottom: 1px solid var(--border-color);
-  /* Accounts for the scrollbar in the grid below */
-  padding-right: 17px; 
-}
-
-.time-header-spacer {
-  border-right: 1px solid var(--border-color);
-}
-
-.day-header {
-  padding: 12px 0;
-  text-align: center;
-  border-right: 1px solid #eee;
-}
-
-.day-header.today {
-  background: #f9f2fb;
-  box-shadow: inset 0 -2px 0 #9C27B0;
-}
-
-.day-name { font-size: 11px; color: #888; }
-.day-date { font-size: 18px; font-weight: bold; color: #333; }
-
-/* Scrollable Grid Area */
-.time-grid {
-  display: grid;
-  grid-template-columns: var(--time-col-width) repeat(7, 1fr);
-  flex: 1;
-  overflow-y: scroll; /* Force scrollbar to prevent header jumping */
-  position: relative;
-}
-
-.time-labels {
-  border-right: 1px solid var(--border-color);
-  background: #fff;
-}
-
-.time-label {
-  height: var(--row-height);
-  box-sizing: border-box;
-  border-bottom: 1px solid #f0f0f0;
-  padding: 4px 10px 0 0;
-  text-align: right;
-  font-size: 12px;
-  color: #999;
-}
-
-.day-column {
-  position: relative; /* Base for event positioning */
-  border-right: 1px solid #f0f0f0;
-}
-
-.time-cell {
-  height: var(--row-height);
-  box-sizing: border-box;
-  border-bottom: 1px solid #f0f0f0;
-}
 
 /* Event Styling */
 .compact-event {
