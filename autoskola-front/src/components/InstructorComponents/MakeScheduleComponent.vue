@@ -422,16 +422,28 @@ export default {
     },
 
     addEventAtTime({day, time}) {
-      this.isCreateModalOpen = true;
-      this.getTimePrefs();
+      
       
        const date = new Date(day.fullDate);
-      this.classFormData.date = date.toISOString().slice(0, 10);
+      
 
       
       const parsed = new Date(`1970-01-01 ${time}`);
       const hours = parsed.getHours().toString().padStart(2, "0");
       const minutes = parsed.getMinutes().toString().padStart(2, "0");
+
+
+      const startDateTime = new Date(date);
+      startDateTime.setHours(hours, minutes, 0, 0);
+
+      if (startDateTime <= new Date()) {
+        alert("Start time must be in the future");
+        return;
+      }
+      this.isCreateModalOpen = true;
+      this.getTimePrefs();
+
+      this.classFormData.date = date.toISOString().slice(0, 10);
 
       this.classFormData.startTime = `${hours}:${minutes}`;
       this.classFormData.endTime = null;
