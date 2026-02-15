@@ -32,6 +32,7 @@
             <div v-else-if="scheduleMode === 'copy'">
             <h4>Copy schedule</h4>
             <p>This will duplicate this week’s schedule.</p>
+            <p>Check out next week and confirm the schedule.</p>
 
             
             </div>
@@ -319,10 +320,38 @@ export default {
 
         this.currentDate = this.getNextMonday()
         this.draftEvents = [];
+
+        if(mode === 'copy'){
+          this.getCopiedNextWeek();
+        }
         
          if ((mode === 'manual' || mode === 'alg') && this.timepref.length === 0) {
             this.getTimePrefs();
          }
+
+    },
+
+    getCopiedNextWeek(){
+
+      const token = localStorage.getItem('token');
+
+      if(token){
+
+        axios.get('http://localhost:8080/practicalclass/getCopiedSchedule', { headers: { Authorization: `Bearer ${token}` }})
+        .then(response=> { 
+          this.draftEvents = response.data.map(e => ({
+            ...e,
+            isDraft: true,     
+            accepted: false   
+          }));
+    }).catch(error => {
+      console.error("Error fetching copied schedule:", error);
+    });
+
+      }
+
+
+
 
     },
 
@@ -498,9 +527,32 @@ export default {
         return;
       }
 
-
+      
         const newStartDate = new Date(`${this.classFormData.date}T${this.classFormData.startTime}`);
         const newEndDate = new Date(`${this.classFormData.date}T${this.classFormData.endTime}`);
+
+        const newClass= {
+        email: this.selectedCandidate.email,
+        startTime: this.toLocalDateTimeString(newStartDate),
+        endTime: this.toLocalDateTimeString(newEndDate),
+        name: this.selectedCandidate.candidate_name,
+        lastname: this.selectedCandidate.canddiate_lastname,
+        category: this.selectedCandidate.category,
+        accepted: false,
+        isDraft: true
+      };
+
+        if (this.scheduleMode !== null) {
+
+          if (this.isTimeSlotTaken(newStartDate, newEndDate)) {
+            alert("Time slot already taken");
+            return;
+          }
+
+          this.draftEvents.push(newClass);
+          this.closeCreateModal();
+          return;
+        }
 
         const oneClass=
           {  email : this.selectedCandidate.email,
