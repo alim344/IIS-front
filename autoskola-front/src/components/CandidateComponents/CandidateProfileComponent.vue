@@ -278,12 +278,14 @@ export default {
         this.updateError = null;
         this.updateSuccess = null;
 
+        const token = localStorage.getItem("token");
+
         const response = await axios.put(
-          `http://localhost:8080/candidates/update/${this.candidate.id}`,
+          `http://localhost:8080/candidates/myprofile`,
           this.editForm,
           {
             headers: {
-              Authorization: "Bearer " + localStorage.getItem("token"),
+              Authorization: "Bearer " + token,
               "Content-Type": "application/json"
             }
           }
