@@ -58,6 +58,52 @@
 
       <!-- DIVIDER -->
       <div class="section-divider">
+        <span class="divider-text">My Preferences</span>
+      </div>
+
+      <div class="info-section">
+        <h2>Class Preferences</h2>
+
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="label">📍 Preferred Location:</span>
+            <div class="value-container">
+              <div class="display-value">
+                <span class="value">{{ preferences.preferredLocation || 'Not set' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="info-item">
+            <span class="label">📅 Preferred Date:</span>
+            <div class="value-container">
+              <div class="display-value">
+                <span class="value">{{ formatDate(preferences.preferredDate) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="info-item">
+            <span class="label">🕐 Preferred Time:</span>
+            <div class="value-container">
+              <div class="display-value">
+                <span class="value">
+                  {{ formatTimeRange(preferences.preferredStartTime, preferences.preferredEndTime) }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="edit-button-container">
+          <button class="edit-btn" @click="showPreferencesModal = true">
+            <span class="btn-icon">⚙️</span> Update Preferences
+          </button>
+        </div>
+      </div>
+
+      <!-- DIVIDER -->
+      <div class="section-divider">
         <span class="divider-text">Training Information</span>
       </div>
 
@@ -195,6 +241,69 @@
       </div>
     </div>
   </div>
+
+  <div v-if="showPreferencesModal" class="modal-overlay" @click="closePreferencesModal">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>Update Preferences</h3>
+          <button class="modal-close-btn" @click="closePreferencesModal">×</button>
+        </div>
+        
+        <div class="modal-body">
+          <form @submit.prevent="updatePreferences">
+            <div class="form-group">
+              <label>📍 Preferred Location</label>
+              <input 
+                v-model="preferencesForm.preferredLocation" 
+                type="text" 
+                class="form-input"
+                placeholder="e.g., Downtown Belgrade"
+              />
+            </div>
+
+            <div class="form-group">
+              <label>📅 Preferred Date</label>
+              <input 
+                v-model="preferencesForm.preferredDate" 
+                type="date" 
+                class="form-input"
+                :min="minDate"
+              />
+            </div>
+
+            <div class="time-row">
+              <div class="form-group">
+                <label>🕐 Start Time</label>
+                <input 
+                  v-model="preferencesForm.preferredStartTime" 
+                  type="time" 
+                  class="form-input"
+                />
+              </div>
+
+              <div class="form-group">
+                <label>🕐 End Time</label>
+                <input 
+                  v-model="preferencesForm.preferredEndTime" 
+                  type="time" 
+                  class="form-input"
+                />
+              </div>
+            </div>
+
+            <div class="modal-actions">
+              <button type="button" class="cancel-btn" @click="closePreferencesModal">Cancel</button>
+              <button type="submit" class="save-btn" :disabled="savingPreferences">
+                {{ savingPreferences ? 'Saving...' : 'Save Preferences' }}
+              </button>
+            </div>
+          </form>
+
+          <div v-if="preferencesError" class="error-message">{{ preferencesError }}</div>
+          <div v-if="preferencesSuccess" class="success-message">{{ preferencesSuccess }}</div>
+        </div>
+      </div>
+  </div>
 </template>
 
 <script>
@@ -215,6 +324,22 @@ export default {
         lastName: '',
         email: '',
         username: ''
+      },
+      preferences: {
+        preferredLocation: null,
+        preferredDate: null,
+        preferredStartTime: null,
+        preferredEndTime: null
+      },
+      showPreferencesModal: false,
+      savingPreferences: false,
+      preferencesError: null,
+      preferencesSuccess: null,
+      preferencesForm: {
+        preferredLocation: '',
+        preferredDate: '',
+        preferredStartTime: '',
+        preferredEndTime: ''
       }
     }
   },
@@ -233,14 +358,24 @@ export default {
         'status-pending': status === 'PENDING',
         'status-completed': status === 'COMPLETED'
       };
+    },
+    minDate() {
+      return new Date().toISOString().split('T')[0];
     }
   },
 
   mounted() {
-    this.fetchMyProfile();
+    this.fetchData();
   },
 
   methods: {
+    async fetchData() {
+      await Promise.all([
+        this.fetchMyProfile(),
+        this.fetchPreferences()
+      ]);
+    },
+
     async fetchMyProfile() {
       try {
         this.loading = true;
@@ -269,6 +404,18 @@ export default {
         }
       } finally {
         this.loading = false;
+      }
+    },
+
+    async fetchPreferences() {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await axios.get("http://localhost:8080/candidates/preferences", {
+          headers: { Authorization: "Bearer " + token }
+        });
+        this.preferences = response.data;
+      } catch (error) {
+        console.error("Error fetching preferences:", error);
       }
     },
 
@@ -306,6 +453,39 @@ export default {
       }
     },
 
+    async updatePreferences() {
+      try {
+        this.savingPreferences = true;
+        this.preferencesError = null;
+        this.preferencesSuccess = null;
+
+        const token = localStorage.getItem("token");
+        const response = await axios.put(
+          "http://localhost:8080/candidates/preferences",
+          this.preferencesForm,
+          {
+            headers: {
+              Authorization: "Bearer " + token,
+              "Content-Type": "application/json"
+            }
+          }
+        );
+
+        this.preferences = response.data;
+        this.preferencesSuccess = "Preferences updated successfully!";
+        
+        setTimeout(() => {
+          this.closePreferencesModal();
+        }, 1500);
+
+      } catch (error) {
+        console.error("Error updating preferences:", error);
+        this.preferencesError = error.response?.data?.message || "Failed to update preferences.";
+      } finally {
+        this.savingPreferences = false;
+      }
+    },
+
     closeEditModal() {
       this.showEditModal = false;
       this.updateError = null;
@@ -316,6 +496,43 @@ export default {
         email: this.candidate.email,
         username: this.candidate.username
       };
+    },
+
+      closePreferencesModal() {
+      this.showPreferencesModal = false;
+      this.preferencesError = null;
+      this.preferencesSuccess = null;
+      this.preferencesForm = {
+        preferredLocation: this.preferences.preferredLocation || '',
+        preferredDate: this.preferences.preferredDate || '',
+        preferredStartTime: this.preferences.preferredStartTime || '',
+        preferredEndTime: this.preferences.preferredEndTime || ''
+      };
+    },
+
+    formatDate(date) {
+      if (!date) return 'Not set';
+      return new Date(date).toLocaleDateString('en-GB');
+    },
+
+    formatTimeRange(startTime, endTime) {
+      if (!startTime && !endTime) return 'Not set';
+      const start = startTime ? startTime.substring(0, 5) : '--:--';
+      const end = endTime ? endTime.substring(0, 5) : '--:--';
+      return `${start} - ${end}`;
+    }
+  },
+
+  watch: {
+    showPreferencesModal(val) {
+      if (val) {
+        this.preferencesForm = {
+          preferredLocation: this.preferences.preferredLocation || '',
+          preferredDate: this.preferences.preferredDate || '',
+          preferredStartTime: this.preferences.preferredStartTime || '',
+          preferredEndTime: this.preferences.preferredEndTime || ''
+        };
+      }
     }
   }
 }
@@ -730,6 +947,12 @@ h2 {
   font-size: 0.9rem;
 }
 
+.time-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
 @media (max-width: 768px) {
   .profile-container {
     padding: 15px;
@@ -756,6 +979,10 @@ h2 {
 
   .modal-content {
     width: 95%;
+  }
+
+  .time-row {
+    grid-template-columns: 1fr;
   }
 }
 </style>
