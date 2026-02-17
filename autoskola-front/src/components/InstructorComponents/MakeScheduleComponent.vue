@@ -23,9 +23,24 @@
         </div>
           <div class="panel-section" v-show="!isEditModalOpen && !isCreateModalOpen">
             <!-- Nothing selected -->
-            <div v-if="!scheduleMode">
-            <h4>No action selected</h4>
-            <p>Select an option to prepare next week’s schedule.</p>
+            <div v-if="!scheduleMode" class="requests-section">
+               <h4>Requests</h4>
+                
+                <div v-if="requests.length === 0" class="no-requests">
+                  <p>No requests from candidates</p>
+                </div>
+
+                 <div v-else class="requests-list">
+                  <RequestsComponent 
+                    v-for="request in requests" 
+                    :key="request.id"
+                    :request="request"
+                    
+                  />
+                </div>
+
+
+            
             </div>
 
             <!-- COPY MODE -->
@@ -199,8 +214,9 @@
 <script>
 import axios from 'axios';
 import WeeklyCalendar from '../WeeklyCalendar.vue';
+import RequestsComponent from './RequestsComponent.vue';
 export default {
-  components: {  WeeklyCalendar},
+  components: {  WeeklyCalendar,RequestsComponent},
     props:{
         events: {
         type: Array,
@@ -231,18 +247,23 @@ export default {
       isCreateModalOpen:false,
       selectedCandidate: null,
       editingEvent:null,
+      requests: [],
       editForm: {
         date: null,
         startTime: null,
         endTime: null,
         name: "",
         lastname: "",
-        category: ""
+        category: "",
+        
       },
       
        
      
     };
+  },
+  mounted() {
+    this.getInstructorRequests();
   },
 
   computed: {
@@ -760,6 +781,21 @@ export default {
                 this.classFormData.startTime = null;
                 this.classFormData.endTime = null;
     },
+  getInstructorRequests() {
+
+    const token = localStorage.getItem("token");
+    
+    if (token) {
+      axios.get('http://localhost:8080/request/getInstructorRequests', 
+        { headers: { Authorization: `Bearer ${token}` } })
+        .then(response => {
+          this.requests = response.data;
+        })
+        .catch(error => {
+          console.error("Error fetching requests:", error);
+        });
+    }
+},
    
 
   },
@@ -916,6 +952,36 @@ export default {
   font-weight: 600;
 
 
+}
+
+.requests-section {
+  padding: 10px 0;
+}
+
+.requests-section h4 {
+  color: #3a283c;
+  margin: 0 0 15px 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.no-requests {
+  text-align: center;
+  color: #777;
+  padding: 20px;
+  background: #f5f5f5;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.requests-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  max-height: 400px;
+  overflow-y: auto;
+  margin-bottom: 20px;
+  padding-right: 5px;
 }
 
 

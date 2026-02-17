@@ -93,12 +93,30 @@ export default {
         required: true
       }
     },
+
   data() {
     return {
       selectedEvent: null,
       showEventModal:false,
     };
   },
+  computed: {
+    upcomingEvents() {
+      const now = new Date();
+
+      return this.events
+        .filter(event => {
+          const start = new Date(event.startTime);
+
+          return (
+            start.toDateString() === now.toDateString() &&
+            start >= now
+          );
+        })
+        .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+    }
+  },
+
 
   methods: {
     selectEvent(event) {

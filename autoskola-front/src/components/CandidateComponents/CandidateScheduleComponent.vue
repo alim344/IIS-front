@@ -317,7 +317,8 @@ export default {
 
     const declineData = {
       instructorEmail : this.selectedEvent.instructorEmail,
-      text: this.suggestionText
+      text: this.suggestionText,
+      date: this.selectedEvent.startTime,
     }
 
      const id = this.selectedEvent.id;
