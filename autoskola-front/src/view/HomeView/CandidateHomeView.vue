@@ -37,7 +37,7 @@
 </template>
 
 <script>
-//import CandidateScheduleComponent from '@/components/CandidateComponents/CandidateScheduleComponent.vue';
+import CandidateScheduleComponent from '@/components/CandidateComponents/CandidateScheduleComponent.vue';
 //import CandidateProgressComponent from '@/components/CandidateComponents/CandidateProgressComponent.vue';
 import CandidateProfileComponent from '@/components/CandidateComponents/CandidateProfileComponent.vue';
 
@@ -45,7 +45,7 @@ export default {
   name: 'CandidateHomeView',
     
     components: {
-        //CandidateScheduleComponent,
+        CandidateScheduleComponent,
         //CandidateProgressComponent,
         CandidateProfileComponent
     },
@@ -56,7 +56,7 @@ export default {
             tabs: [
                 { id: 1, text: 'My Profile', component: 'CandidateProfileComponent' },
                 //{ id: 2, text: 'My Progress', component: 'CandidateProgressComponent' },
-                //{ id: 3, text: 'Schedule', component: 'CandidateScheduleComponent' }
+                { id: 2, text: 'Schedule', component: 'CandidateScheduleComponent' }
             ]
         };
     },  
