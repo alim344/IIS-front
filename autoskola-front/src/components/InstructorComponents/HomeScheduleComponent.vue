@@ -73,10 +73,21 @@
             
            
           </div>
+
+          <div v-if="getEventStatus(selectedEvent) === 'passed'" class="modal-actions">
+            <button class="record-btn" @click="openRecordModal">Record Class</button>
+          </div>
+
           </div>
       </div>
     </div>
 
+    <RecordClass
+      v-if="showRecordModal && selectedEvent"
+      :event="selectedEvent"
+      @close="showRecordModal = false"
+      @recorded="onRecorded"
+    />
 
 
   </div>
@@ -84,9 +95,10 @@
 
 <script>
 import WeeklyCalendar from '../WeeklyCalendar.vue';
+import RecordClass from './RecordClass.vue';
 
 export default {
-  components: { WeeklyCalendar },
+  components: { WeeklyCalendar, RecordClass },
    props: {
       events: {
         type: Array,
@@ -98,6 +110,7 @@ export default {
     return {
       selectedEvent: null,
       showEventModal:false,
+      showRecordModal: false,
     };
   },
   computed: {
@@ -166,6 +179,16 @@ export default {
       if (now >= start && now <= end) return 'ongoing';
       if (event.accepted) return 'future-accepted';
       return 'future-pending';
+    },
+
+    openRecordModal() {
+      this.showEventModal = false;
+      this.showRecordModal = true;
+    },
+
+    onRecorded() {
+      this.showRecordModal = false;
+      this.selectedEvent = null;
     },
   }
 };
@@ -343,6 +366,21 @@ export default {
   transition: all 0.2s;
 }
 
+.record-btn {
+  padding: 10px 20px;
+  border-radius: 6px;
+  border: none;
+  background: #9C27B0;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+}
+
+.record-btn:hover {
+  background: #7B1FA2;
+}
 
 .close-btn:hover {
   background: #e0e0e0;
