@@ -21,6 +21,7 @@ import InstructorDetailsComponent from "@/components/AdminComponents/InstructorD
 import ProfessorDetailsComponent from "@/components/AdminComponents/ProfessorDetailsComponent.vue";
 import VehicleDetailsComponent from "@/components/AdminComponents/VehicleDetailsComponent.vue";
 import InstructorVehicleComponent from "@/components/InstructorComponents/InstructorVehicleComponent.vue";
+import AdminAssignments from "@/components/AdminComponents/AdminAssignmentsComponent.vue";
 
 
 const routes = [
@@ -45,6 +46,8 @@ const routes = [
 
       { path: 'professors', component: AdminProfessorsComponent },
       { path: 'professors/:id', component: ProfessorDetailsComponent },
+
+      { path: 'assignments', component: AdminAssignments },
 
       { path: 'profile', component: AdminProfileComponent },
 
