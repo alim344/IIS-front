@@ -4,6 +4,7 @@
       <WeeklyCalendar
       :events="events"
       @event-click="selectEvent"
+      
     >
       <template #event="{ event }">
 
@@ -17,6 +18,10 @@
 
          <div v-else-if="candidateStatus === 'THEORY'">
           <div>THEORY CLASS</div>
+          <div class="event-time">{{ formatEventTime(event) }}</div>
+            <div class="event-status">{{ getEventStatusText(event) }}</div>
+            <div>{{ event.professorName }} {{ event.professorLastName }}</div>
+            
          </div>
       </template>
     </WeeklyCalendar>
@@ -190,7 +195,7 @@ export default {
           if (this.candidateStatus === "PRACTICAL") {
             this.fetchPracticalClasses();
           } else if (this.candidateStatus === "THEORY") {
-            console.log('Theory candidate');
+            this.fetchTheoryClasses();
           }
 
         })
@@ -220,6 +225,25 @@ export default {
       }
 
 
+    },
+    fetchTheoryClasses(){
+        const token = localStorage.getItem('token');
+
+      if(token){
+
+        axios.get('http://localhost:8080/theoryclass/candidateschedule',
+          {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+             .then(response => {
+                this.events = response.data;
+                console.log('Theory classes:', this.events);
+            })
+            .catch(error => {
+                console.error("Fetch error:", error);
+            });
+
+      }
     },
     selectEvent(event) {
       this.selectedEvent = event;
@@ -267,6 +291,11 @@ export default {
 
       if (now > end) return 'Passed';
       if (now >= start && now <= end) return 'In session';
+
+      if (this.candidateStatus === 'THEORY' ||Object.prototype.hasOwnProperty.call(event, 'enrolled')) {
+        return event.enrolled ? 'Enrolled' : 'Available';
+      }
+
       if (event.accepted) return 'Accepted';
       return 'Pending';
     },
@@ -288,12 +317,19 @@ export default {
     },
    
     getEventStatus(event) {
-      const now = new Date();
+  const now = new Date();
       const start = new Date(event.startTime);
       const end = new Date(event.endTime);
 
       if (now > end) return 'passed';
       if (now >= start && now <= end) return 'ongoing';
+
+      // Theory logic
+      if (this.candidateStatus === 'THEORY' ||Object.prototype.hasOwnProperty.call(event, 'enrolled')) {
+        return event.enrolled ? 'theory-enrolled' : 'theory-not-enrolled';
+      }
+
+      // Practical logic
       if (event.accepted) return 'future-accepted';
       return 'future-pending';
     },
@@ -753,4 +789,17 @@ export default {
   cursor: not-allowed;
   opacity: 0.6;
 }
+
+.status-badge.theory-enrolled {
+  background: #e3f2fd; /* Light Blue */
+  color: #0d47a1;
+}
+
+.status-badge.theory-not-enrolled {
+  background: #f5f5f5; /* Light Grey */
+  color: #616161;
+  border: 1px dashed #bdbdbd;
+}
+
+
 </style>

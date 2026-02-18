@@ -33,7 +33,6 @@
               v-for="event in getEventsForDay(day)" 
               :key="event.startTime" 
               class="compact-event"
-              :class="getEventStatus(event)"
               :style="getEventStyle(event)"
               @click.stop="$emit('event-click', event)"
             >
@@ -42,7 +41,7 @@
                 <!-- DEFAULT FALLBACK -->
                 <div class="event-time">{{ formatEventTime(event) }}</div>
                 <div class="event-title">{{ event.title }}</div>
-                <div class="event-status">{{ getEventStatusText(event) }}</div>
+                
               </slot>
             </div>
           </div>
@@ -137,24 +136,7 @@ export default {
       });
     },
 
-    getEventStatus(event) {
-      const now = new Date();
-      const start = new Date(event.startTime);
-      const end = new Date(event.endTime);
-
-      if (now > end) return 'passed';
-      if (now >= start && now <= end) return 'ongoing';
-      if (event.accepted) return 'future-accepted';
-      return 'future-pending';
-    },
-
-    getEventStatusText(event) {
-      const status = this.getEventStatus(event);
-      if (status === 'passed') return 'Passed';
-      if (status === 'ongoing') return 'In session';
-      if (status === 'future-accepted') return 'Accepted';
-      return 'Pending';
-    },
+    
 
     getEventStyle(event) {
       const start = new Date(event.startTime);
@@ -165,12 +147,12 @@ export default {
 
       const top = (startMinutes / 60) * this.rowHeight;
       const height = (durationMinutes / 60) * this.rowHeight;
-      const status = this.getEventStatus(event);
+      
 
       return {
         top: `${top}px`,
         height: `${height - 4}px`,
-        opacity: status === 'passed' ? 0.4 : 1
+        
       };
     },
 
@@ -331,36 +313,7 @@ export default {
   margin: 1px 0; 
 }
 
-.compact-event.future-accepted {
-  background: #e8f5e9;
-  border-left-color: #4CAF50;
-  color: #1b5e20;
-}
 
-.compact-event.future-pending {
-  background: #fff3e0;
-  border-left-color: #ff9800;
-  color: #e65100;
-}
 
-.compact-event.ongoing {
-  background: #f3e5f5;
-  border-left-color: #9C27B0;
-  color: #4a148c;
-}
 
-.compact-event.passed {
-  background: #f5f5f5;
-  border-left-color: #9e9e9e;
-  color: #393939;
-}
-
-/* Status label */
-.event-status {
-  font-size: 9px;
-  margin-top: 3px;
-  font-weight: 600;
-  text-transform: uppercase;
-  opacity: 0.85;
-}
 </style>
