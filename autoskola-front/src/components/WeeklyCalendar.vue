@@ -73,7 +73,8 @@ export default {
       rowHeight: 60,
       times: [
         '8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM',
-        '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM'
+        '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM',
+         '6:00 PM', '7:00 PM', '8:00 PM', '9:00 PM', '10:00 PM', '11:00 PM'
       ]
     };
   },
@@ -145,6 +146,8 @@ export default {
       if (now > end) return 'passed';
       if (now >= start && now <= end) return 'ongoing';
       if (event.accepted) return 'future-accepted';
+      if(event.enrolled) return 'enrolled'
+      if(event.available) return 'available'
       return 'future-pending';
     },
 
@@ -153,6 +156,8 @@ export default {
       if (status === 'passed') return 'Passed';
       if (status === 'ongoing') return 'In session';
       if (status === 'future-accepted') return 'Accepted';
+      if(status == 'enrolled') return 'Enrolled'
+      if(status == 'available') return 'Available'
       return 'Pending';
     },
 
@@ -353,6 +358,18 @@ export default {
   background: #f5f5f5;
   border-left-color: #9e9e9e;
   color: #393939;
+}
+
+.compact-event.enrolled {
+  background: #d6eced;
+  border-left-color: #3232a5;
+  color: #1a1727;
+}
+
+.compact-event.available {
+  background: #f6ffd4;
+  border-left-color: #e5ff22;
+  color: #344215;
 }
 
 /* Status label */

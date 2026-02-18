@@ -17,6 +17,10 @@
 
          <div v-else-if="candidateStatus === 'THEORY'">
           <div>THEORY CLASS</div>
+             <div class="event-time">{{ formatEventTime(event) }}</div>
+              <div>{{ event.professorName }} {{ event.professorLastName }}</div>
+              <div>{{ event.title }}</div>
+              <div class="event-status">{{ getEventStatusText(event) }}</div>
          </div>
       </template>
     </WeeklyCalendar>
@@ -134,7 +138,14 @@
         </div>
       </div>
 
-
+      <TheoryClassDetails 
+        v-if="showTheoryModal && selectedEvent"
+        :event="selectedEvent"
+        :status-text="getEventStatusText(selectedEvent)"
+        :status-class="getEventStatus(selectedEvent)"
+        @close="showTheoryModal = false"
+        
+      />
 
 
   </div>
@@ -142,10 +153,11 @@
 
 <script>
 import WeeklyCalendar from '../WeeklyCalendar.vue';
+import TheoryClassDetails from '../TheoryClassDetails.vue';
 import axios from 'axios';
 
 export default {
-  components: { WeeklyCalendar },
+  components: { WeeklyCalendar , TheoryClassDetails},
    
   data() {
     return {
@@ -156,7 +168,7 @@ export default {
       declineModal: false,
       declineReason: null,
       suggestionText: '',
-
+      showTheoryModal:false,
     };
   },
   mounted(){
@@ -190,7 +202,7 @@ export default {
           if (this.candidateStatus === "PRACTICAL") {
             this.fetchPracticalClasses();
           } else if (this.candidateStatus === "THEORY") {
-            console.log('Theory candidate');
+            this.fetchTheoryClasses();
           }
 
         })
@@ -221,9 +233,40 @@ export default {
 
 
     },
+    fetchTheoryClasses(){
+      const token = localStorage.getItem('token');
+
+      if(token){
+
+        axios.get('http://localhost:8080/theoryclass/candidateschedule',
+          {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+             .then(response => {
+                
+                 this.events = response.data.map(e => ({
+                  ...e,
+                  available: !e.enrolled
+              }));
+            })
+            .catch(error => {
+                console.error("Fetch error:", error);
+            });
+
+      }
+
+    },
     selectEvent(event) {
       this.selectedEvent = event;
-      this.showEventModal = true;
+      
+
+        if (this.candidateStatus === "PRACTICAL") {
+            this.showEventModal = true;
+          } else if (this.candidateStatus === "THEORY") {
+            this.showTheoryModal = true;
+          }
+
+      
     },
     acceptClass(){
 
@@ -268,6 +311,9 @@ export default {
       if (now > end) return 'Passed';
       if (now >= start && now <= end) return 'In session';
       if (event.accepted) return 'Accepted';
+      if(event.enrolled) return 'Enrolled';
+      if(event.available) return 'Available';
+     
       return 'Pending';
     },
     closeEventModal(){
@@ -295,6 +341,9 @@ export default {
       if (now > end) return 'passed';
       if (now >= start && now <= end) return 'ongoing';
       if (event.accepted) return 'future-accepted';
+      if(event.enrolled) return 'enrolled'
+      if(event.available) return 'available'
+      
       return 'future-pending';
     },
     openDeclineModal() {
@@ -532,6 +581,16 @@ export default {
 .status-badge.passed {
   background: #f5f5f5;
   color: #393939;
+}
+
+.status-badge.enrolled {
+  background: #cfdbe6;
+  color: #0c247b;
+}
+
+.status-badge.available {
+  background: #ebedef;
+  color: #818d26;
 }
 
 .modal-actions {
