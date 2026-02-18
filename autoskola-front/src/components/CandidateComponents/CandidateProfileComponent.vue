@@ -1,4 +1,5 @@
 <template>
+  
   <div class="profile-container">
     <h1 class="page-title">My Profile</h1>
 
@@ -304,6 +305,7 @@
         </div>
       </div>
   </div>
+  
 </template>
 
 <script>

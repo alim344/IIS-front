@@ -35,7 +35,8 @@
                     v-for="request in requests" 
                     :key="request.id"
                     :request="request"
-                    
+                    @accept="acceptRequest(request)"
+                    @decline ="declineRequest(request)"
                   />
                 </div>
 
@@ -257,7 +258,7 @@ export default {
         category: "",
         
       },
-      
+      requestId:null,
        
      
     };
@@ -365,9 +366,12 @@ export default {
             isDraft: true,     
             accepted: false   
           }));
-    }).catch(error => {
-      console.error("Error fetching copied schedule:", error);
-    });
+        }).catch(err => {
+        if (err.response?.status === 409) {
+          alert("Cannot copy — next week already has classes that overlap");
+          this.scheduleMode= null;
+        }
+      });
 
       }
 
@@ -563,6 +567,12 @@ export default {
         isDraft: true
       };
 
+        if (this.isTimeSlotTaken(newStartDate, newEndDate)) {
+            alert("Time slot already taken");
+            return;
+          }
+
+
         if (this.scheduleMode !== null) {
 
           if (this.isTimeSlotTaken(newStartDate, newEndDate)) {
@@ -582,13 +592,20 @@ export default {
         
 
         const token = localStorage.getItem('token');
+        const params = this.requestId ? { requestId: this.requestId } : {};
 
         if(token){
-          axios.post('http://localhost:8080/practicalclass/saveClass',oneClass,
-          { headers: { Authorization: `Bearer ${token}` }})
+          axios.post(`http://localhost:8080/practicalclass/saveClass`,oneClass,
+          {params: params, headers: { Authorization: `Bearer ${token}` }})
           .then(() => {
                 this.$emit('refreshEvents');
+                
+                if(this.requestId != null){
+                  this.requests = this.requests.filter(r => r.id !== this.requestId);
+                  this.requestId = null;
+                }
                 this.closeCreateModal();
+                
 
         })
             .catch(error => {
@@ -780,6 +797,7 @@ export default {
                 this.classFormData.date = null;
                 this.classFormData.startTime = null;
                 this.classFormData.endTime = null;
+                this.requestId = null;
     },
   getInstructorRequests() {
 
@@ -795,7 +813,33 @@ export default {
           console.error("Error fetching requests:", error);
         });
     }
-},
+  },
+   acceptRequest(request){
+    
+    
+    this.getTimePrefs();
+    this.isCreateModalOpen = true;
+
+    this.requestId = request.id;
+    
+    
+  },
+  declineRequest(request){
+
+    const requestId = request.id;
+
+     axios.patch(`http://localhost:8080/request/declineRequest/${requestId}`,)
+      .then(response => {
+        console.log(response.data);
+        this.requests = this.requests.filter(r => r.id !== requestId);
+      })
+      .catch(error => {
+      console.error("Error accepting request:", error);
+      alert("Failed to accept request.");
+    });
+
+
+  }
    
 
   },

@@ -63,6 +63,11 @@
               <span class="detail-label">Time:</span>
               <span class="detail-value">{{ formatEventTime(selectedEvent) }}</span>
             </div>
+
+            <div class="detail-row">
+              <span class="detail-label">Location:</span>
+              <span class="detail-value">{{ selectedEvent.preferredLocation}}</span>
+            </div>
             
             <div class="detail-row">
               <span class="detail-label">Status:</span>
