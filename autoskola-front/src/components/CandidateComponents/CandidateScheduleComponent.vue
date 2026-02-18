@@ -143,7 +143,7 @@
         :event="selectedEvent"
         :status-text="getEventStatusText(selectedEvent)"
         :status-class="getEventStatus(selectedEvent)"
-        @close="showTheoryModal = false"
+        @close="showTheoryModal = false; selectedEvent = null"
         
       />
 
@@ -254,6 +254,13 @@ export default {
             });
 
       }
+
+    },
+    enrollInTheory(){
+
+
+
+
 
     },
     selectEvent(event) {
