@@ -40,6 +40,7 @@
 import CandidateScheduleComponent from '@/components/CandidateComponents/CandidateScheduleComponent.vue';
 //import CandidateProgressComponent from '@/components/CandidateComponents/CandidateProgressComponent.vue';
 import CandidateProfileComponent from '@/components/CandidateComponents/CandidateProfileComponent.vue';
+import CandidateClassNotificationsComponent from '@/components/CandidateComponents/CandidateClassNotificationsComponent.vue';
 
 export default {
   name: 'CandidateHomeView',
@@ -47,7 +48,8 @@ export default {
     components: {
         CandidateScheduleComponent,
         //CandidateProgressComponent,
-        CandidateProfileComponent
+        CandidateProfileComponent,
+        CandidateClassNotificationsComponent
     },
 
     data() {
@@ -56,7 +58,8 @@ export default {
             tabs: [
                 { id: 1, text: 'My Profile', component: 'CandidateProfileComponent' },
                 //{ id: 2, text: 'My Progress', component: 'CandidateProgressComponent' },
-                { id: 2, text: 'Schedule', component: 'CandidateScheduleComponent' }
+                { id: 2, text: 'Schedule', component: 'CandidateScheduleComponent' },
+                {id: 3, text: 'Notifications', component: 'CandidateClassNotificationsComponent'}
             ]
         };
     },  

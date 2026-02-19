@@ -22,6 +22,7 @@
                 <div class="upcoming-time">{{ formatEventTime(event) }}</div>
                 <div class="upcoming-category">{{ event.category }}</div>
                 <div class="upcoming-student">{{ event.name }} {{ event.lastname }}</div>
+                <div class="upcoming-time">{{ event.preferredLocation }}</div>
               </div>
             </div>
           </div>
