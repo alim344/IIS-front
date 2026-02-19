@@ -164,6 +164,67 @@
           </div>
         </div>
 
+        <div class="statistics-section">
+          <div class="section-header">
+            <h2>Monthly Statistics</h2>
+            <div class="month-selector">
+              <select v-model="selectedMonth" @change="fetchVehicleStats" class="month-select">
+                <option v-for="month in availableMonths" :key="month.value" :value="month.value">
+                  {{ month.label }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div v-if="statsLoading" class="loading-small">
+            <div class="spinner"></div>
+            <p>Loading statistics...</p>
+          </div>
+
+          <div v-else-if="vehicleStats" class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon">📏</div>
+              <div class="stat-content">
+                <div class="stat-label">Distance Traveled</div>
+                <div class="stat-value">{{ vehicleStats.distanceTraveled }} km</div>
+                <div v-if="vehicleStats.startingMileage" class="stat-sub">
+                  from {{ vehicleStats.startingMileage }} to {{ vehicleStats.endingMileage }} km
+                </div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon">⛽</div>
+              <div class="stat-content">
+                <div class="stat-label">Fuel Consumption</div>
+                <div class="stat-value">{{ vehicleStats.totalLiters.toFixed(2) }} L</div>
+                <div class="stat-sub">{{ vehicleStats.avgConsumption.toFixed(2) }} L/100km</div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon">💰</div>
+              <div class="stat-content">
+                <div class="stat-label">Fuel Cost</div>
+                <div class="stat-value">{{ vehicleStats.totalCost.toFixed(2) }} RSD</div>
+                <div class="stat-sub">{{ vehicleStats.avgCostPerLiter.toFixed(2) }} RSD/L</div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon">📊</div>
+              <div class="stat-content">
+                <div class="stat-label">Fuel Records</div>
+                <div class="stat-value">{{ vehicleStats.fuelRecordCount }}</div>
+                <div class="stat-sub">this month</div>
+              </div>
+            </div>
+          </div>
+
+          <div v-else-if="!statsLoading" class="no-stats">
+            <p>No statistics available for this period</p>
+          </div>
+        </div>
 
         <div class="fuel-records-section">
           <div class="section-header">
@@ -218,31 +279,6 @@
           </div>
         </div>
 
-
-        <div class="assigned-info" v-if="vehicle.instructor">
-          <h2>Assigned Instructor</h2>
-          <div class="info-card">
-            <div class="info-row">
-              <span class="label">Name:</span>
-              <span>{{ vehicle.instructor.name }} {{ vehicle.instructor.lastName }}</span>
-            </div>
-            <div class="info-row">
-              <span class="label">Username:</span>
-              <span>{{ vehicle.instructor.username }}</span>
-            </div>
-            <div class="info-row">
-              <span class="label">Email:</span>
-              <span>{{ vehicle.instructor.email }}</span>
-            </div>
-            <div class="info-row">
-              <span class="label">Action:</span>
-              <span class="instructor-link" @click="goToInstructor(vehicle.instructor.id)">
-        View Full Profile →
-      </span>
-            </div>
-          </div>
-        </div>
-
       </div>
     </div>
   </div>
@@ -257,6 +293,8 @@ export default {
       vehicle: null,
       fuelRecords: [],
       fuelRecordsLoading: false,
+      vehicleStats: null,
+      statsLoading: false,
       loading: true,
       actionLoading: false,
       error: null,
@@ -271,7 +309,9 @@ export default {
         status: '',
         currentMileage: null,
         registrationExpiryDate: ''
-      }
+      },
+      selectedMonth: this.getCurrentYearMonth(),
+      availableMonths: this.generateLast12Months()
     }
   },
 
@@ -288,7 +328,41 @@ export default {
     }
   },
 
+  watch: {
+    vehicle: {
+      handler(newVal) {
+        if (newVal?.id) {
+          this.fetchVehicleStats();
+        }
+      },
+      immediate: true,
+      deep: true
+    }
+  },
+
   methods: {
+    getCurrentYearMonth() {
+      const date = new Date();
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    },
+
+    generateLast12Months() {
+      const months = [];
+      const date = new Date();
+
+      for (let i = 0; i < 12; i++) {
+        const year = date.getFullYear();
+        const month = date.getMonth() + 1;
+        const value = `${year}-${String(month).padStart(2, '0')}`;
+        const label = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+
+        months.push({ value, label });
+        date.setMonth(date.getMonth() - 1);
+      }
+
+      return months;
+    },
+
     async fetchVehicleDetails() {
       try {
         this.loading = true;
@@ -301,7 +375,6 @@ export default {
         this.vehicle = response.data;
         this.resetEditedVehicle();
 
-        // Fetch fuel records za ovo vozilo
         await this.fetchFuelRecords(vehicleId);
       } catch (error) {
         console.error("Error fetching vehicle details:", error);
@@ -325,6 +398,28 @@ export default {
         this.fuelRecords = [];
       } finally {
         this.fuelRecordsLoading = false;
+      }
+    },
+
+    async fetchVehicleStats() {
+      if (!this.vehicle?.id || !this.selectedMonth) return;
+
+      try {
+        this.statsLoading = true;
+        const [year, month] = this.selectedMonth.split('-');
+        const response = await axios.get(
+            `http://localhost:8080/vehicles/${this.vehicle.id}/stats`,
+            {
+              params: { year, month },
+              headers: { Authorization: "Bearer " + localStorage.getItem("token") }
+            }
+        );
+        this.vehicleStats = response.data;
+      } catch (error) {
+        console.error("Error fetching vehicle stats:", error);
+        this.vehicleStats = null;
+      } finally {
+        this.statsLoading = false;
       }
     },
 
@@ -387,7 +482,6 @@ export default {
     },
 
     async reportOutOfService() {
-
       try {
         this.actionLoading = true;
         await axios.put(
@@ -531,6 +625,7 @@ export default {
 
 .info-section,
 .actions-section,
+.statistics-section,
 .fuel-records-section,
 .assigned-info {
   margin-bottom: 40px;
@@ -540,6 +635,7 @@ export default {
 
 .info-section:last-child,
 .actions-section:last-child,
+.statistics-section:last-child,
 .fuel-records-section:last-child,
 .assigned-info:last-child {
   border-bottom: none;
@@ -551,6 +647,7 @@ h2 {
   color: #4f364b;
   margin-bottom: 20px;
   font-size: 1.8rem;
+  text-align: center;
 }
 
 h3 {
@@ -799,28 +896,113 @@ h3 {
   font-size: 0.95rem;
 }
 
-/* FUEL RECORDS  */
+/* STATISTICS SECTION */
+.statistics-section {
+  margin-bottom: 40px;
+  padding-bottom: 30px;
+  border-bottom: 2px solid #e9e1f5;
+}
+
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+  text-align: center;
 }
 
 .section-header h2 {
   margin-bottom: 0;
+  text-align: center;
+  flex: 1;  
 }
 
-.records-count {
-  background: #be8fe9;
-  color: white;
-  padding: 5px 12px;
-  border-radius: 20px;
+.month-selector {
+  margin-left: auto;
+}
+
+.month-select {
+  padding: 8px 15px;
+  border: 2px solid #e9e1f5;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  background: white;
+  color: #2c1f2d;
+  cursor: pointer;
+  min-width: 200px;
+}
+
+.month-select:focus {
+  border-color: #be8fe9;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(190, 143, 233, 0.1);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 25px;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 20px;
+  background: linear-gradient(135deg, #f8f4fc, #f0e8fa);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.stat-card:hover {
+  border-color: #be8fe9;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(190, 143, 233, 0.2);
+}
+
+.stat-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.stat-content {
+  flex: 1;
+}
+
+.stat-label {
   font-size: 0.85rem;
-  font-weight: 600;
+  color: #6b5b7a;
+  margin-bottom: 5px;
+  text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
+.stat-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #4f364b;
+  line-height: 1.2;
+}
+
+.stat-sub {
+  font-size: 0.85rem;
+  color: #be8fe9;
+  font-weight: 600;
+  margin-top: 3px;
+}
+
+.no-stats {
+  text-align: center;
+  padding: 40px;
+  background: #f8f4fc;
+  border-radius: 12px;
+  color: #6b5b7a;
+  font-style: italic;
+}
+
+/* FUEL RECORDS */
 .fuel-records-table-container {
   overflow-x: auto;
   border-radius: 12px;
@@ -867,6 +1049,16 @@ h3 {
 
 .fuel-records-table tbody tr:last-child td {
   border-bottom: none;
+}
+
+.records-count {
+  background: #be8fe9;
+  color: white;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
 }
 
 .instructor-link {
@@ -1003,6 +1195,20 @@ h3 {
     grid-template-columns: 1fr;
   }
 
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .month-select {
+    width: 100%;
+  }
+
   .fuel-records-table {
     font-size: 0.85rem;
   }
@@ -1010,12 +1216,6 @@ h3 {
   .fuel-records-table th,
   .fuel-records-table td {
     padding: 12px 8px;
-  }
-
-  .section-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
   }
 
   .info-row {

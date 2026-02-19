@@ -13,7 +13,6 @@
 
         <div class="personal-info">
           <h2>Personal Information</h2>
-
           <div class="info-grid">
             <div class="info-item">
               <span class="label">Name:</span>
@@ -29,18 +28,10 @@
                 <div v-else class="edit-mode">
                   <div class="input-group">
                     <div class="input-wrapper">
-                      <input
-                          v-model="editedInstructor.name"
-                          placeholder="First name"
-                          class="modern-input"
-                      />
+                      <input v-model="editedInstructor.name" placeholder="First name" class="modern-input" />
                     </div>
                     <div class="input-wrapper">
-                      <input
-                          v-model="editedInstructor.lastname"
-                          placeholder="Last name"
-                          class="modern-input"
-                      />
+                      <input v-model="editedInstructor.lastname" placeholder="Last name" class="modern-input" />
                     </div>
                   </div>
                   <div class="action-buttons">
@@ -75,7 +66,6 @@
 
         <div class="vehicle-info">
           <h2>Vehicle Assignment</h2>
-
           <div class="current-vehicle">
             <h3>Current Vehicle</h3>
             <div v-if="instructor.vehicle" class="vehicle-details">
@@ -103,11 +93,7 @@
                   {{ vehicle.registrationNumber }} - ({{ vehicle.currentMileage }} km)
                 </option>
               </select>
-              <button
-                  class="assign-btn"
-                  @click="assignVehicle"
-                  :disabled="!selectedVehicleId"
-              >
+              <button class="assign-btn" @click="assignVehicle" :disabled="!selectedVehicleId">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M19 13H13V19H11V13H5V11H11V5H13V11H19V13Z" fill="currentColor"/>
                 </svg>
@@ -119,7 +105,6 @@
 
         <div class="documents-info">
           <h2>Licenses & Documents</h2>
-
           <div class="documents-grid">
             <div v-for="doc in instructor.documents" :key="doc.documentType" class="document-card">
               <div class="document-header">
@@ -129,20 +114,11 @@
                 <div class="info-row">
                   <span class="label">Expiry Date: </span>
                   <span v-if="!editMode[doc.documentType]">{{ formatDate(doc.expiryDate) }}</span>
-                  <input
-                      v-else
-                      type="date"
-                      v-model="editedDocuments[doc.documentType]"
-                      class="date-input"
-                  />
+                  <input v-else type="date" v-model="editedDocuments[doc.documentType]" class="date-input" />
                 </div>
               </div>
               <div class="document-actions">
-                <button
-                    v-if="!editMode[doc.documentType]"
-                    class="edit-doc-btn"
-                    @click="toggleEditDocument(doc.documentType, doc.expiryDate)"
-                >
+                <button v-if="!editMode[doc.documentType]" class="edit-doc-btn" @click="toggleEditDocument(doc.documentType, doc.expiryDate)">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M3 17.25V21H6.75L17.81 9.94L14.06 6.19L3 17.25ZM20.71 7.04C21.1 6.65 21.1 6.02 20.71 5.63L18.37 3.29C17.98 2.9 17.35 2.9 16.96 3.29L15.13 5.12L18.88 8.87L20.71 7.04Z" fill="currentColor"/>
                   </svg>
@@ -166,6 +142,65 @@
             </div>
           </div>
         </div>
+
+        <div class="calendar-section">
+          <h2>Instructor Schedule</h2>
+          <div class="calendar-wrapper">
+            <WeeklyCalendar
+                :events="calendarEvents"
+                @event-click="selectCalendarEvent"
+            >
+              <template #event="{ event }">
+                <div :class="['event-content', getEventStatus(event)]">
+                  <div class="event-title">{{ event.candidateName }}</div>
+                  <div class="event-time">{{ formatEventTime(event) }}</div>
+                  <div class="event-category">{{ event.category || 'Practical Class' }}</div>
+                  <div class="event-status">{{ getEventStatusText(event) }}</div>
+                </div>
+              </template>
+            </WeeklyCalendar>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showEventModal && selectedEvent" class="modal-overlay" @click="closeEventModal">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>Class Details</h3>
+          <button class="modal-close-btn" @click="closeEventModal">×</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="detail-section">
+            <div class="detail-row">
+              <span class="detail-label">Student:</span>
+              <span class="detail-value">{{ selectedEvent.candidateName }}</span>
+            </div>
+
+            <div class="detail-row">
+              <span class="detail-label">Date:</span>
+              <span class="detail-value">{{ formatDetailedDate(selectedEvent) }}</span>
+            </div>
+
+            <div class="detail-row">
+              <span class="detail-label">Time:</span>
+              <span class="detail-value">{{ formatEventTime(selectedEvent) }}</span>
+            </div>
+
+            <div class="detail-row">
+              <span class="detail-label">Location:</span>
+              <span class="detail-value">{{ selectedEvent.location || 'Driving range' }}</span>
+            </div>
+
+            <div class="detail-row">
+              <span class="detail-label">Status:</span>
+              <span class="detail-value status-badge" :class="getEventStatus(selectedEvent)">
+                {{ getEventStatusText(selectedEvent) }}
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -173,8 +208,12 @@
 
 <script>
 import axios from "axios";
+import WeeklyCalendar from '../WeeklyCalendar.vue';
 
 export default {
+  components: {
+    WeeklyCalendar
+  },
   data() {
     return {
       instructor: null,
@@ -189,7 +228,10 @@ export default {
         name: '',
         lastname: ''
       },
-      editedDocuments: {}
+      editedDocuments: {},
+      calendarEvents: [],
+      showEventModal: false,
+      selectedEvent: null
     }
   },
 
@@ -210,11 +252,39 @@ export default {
         });
         this.instructor = response.data;
         this.cancelNameEdit();
+
+        await this.fetchInstructorSchedule(instructorId);
       } catch (error) {
         console.error("Error fetching instructor details:", error);
         this.error = "Failed to load instructor details.";
       } finally {
         this.loading = false;
+      }
+    },
+
+    async fetchInstructorSchedule(instructorId) {
+      try {
+        const response = await axios.get(`http://localhost:8080/practicalclass/admin/instructor/${instructorId}/schedule`, {
+          headers: {
+            Authorization: "Bearer " + localStorage.getItem("token")
+          }
+        });
+
+        console.log("Schedule data:", response.data);
+
+        this.calendarEvents = response.data.map(event => ({
+          id: event.id,
+          candidateName: `${event.name || ''} ${event.lastname || ''}`.trim() || 'Unknown',
+          startTime: event.startTime,
+          endTime: event.endTime,
+          accepted: event.accepted || false,
+          location: event.preferredLocation || 'Driving range',
+          instructorId: instructorId
+        }));
+
+      } catch (error) {
+        console.error("Error fetching instructor schedule:", error);
+        this.calendarEvents = [];
       }
     },
 
@@ -233,18 +303,12 @@ export default {
 
     async assignVehicle() {
       if (!this.selectedVehicleId) return;
-
       try {
         await axios.put(
             `http://localhost:8080/instructors/${this.instructor.id}/vehicle/${this.selectedVehicleId}`,
             {},
-            {
-              headers: {
-                Authorization: "Bearer " + localStorage.getItem("token")
-              }
-            }
+            { headers: { Authorization: "Bearer " + localStorage.getItem("token") } }
         );
-
         this.fetchInstructorDetails();
         this.fetchAvailableVehicles();
         this.selectedVehicleId = '';
@@ -255,18 +319,12 @@ export default {
     },
 
     async removeVehicle() {
-
       try {
         await axios.put(
             `http://localhost:8080/instructors/${this.instructor.id}/remove-vehicle`,
             {},
-            {
-              headers: {
-                Authorization: "Bearer " + localStorage.getItem("token")
-              }
-            }
+            { headers: { Authorization: "Bearer " + localStorage.getItem("token") } }
         );
-
         this.fetchInstructorDetails();
         this.fetchAvailableVehicles();
       } catch (error) {
@@ -288,8 +346,8 @@ export default {
     cancelNameEdit() {
       this.editMode.name = false;
       this.editedInstructor = {
-        name: this.instructor.name || '',
-        lastname: this.instructor.lastName || ''
+        name: this.instructor?.name || '',
+        lastname: this.instructor?.lastName || ''
       };
     },
 
@@ -298,23 +356,16 @@ export default {
         alert("Both first name and last name are required.");
         return;
       }
-
       try {
         const updateData = {
           name: this.editedInstructor.name,
           lastname: this.editedInstructor.lastname
         };
-
         await axios.put(
             `http://localhost:8080/instructors/update/${this.instructor.id}`,
             updateData,
-            {
-              headers: {
-                Authorization: "Bearer " + localStorage.getItem("token")
-              }
-            }
+            { headers: { Authorization: "Bearer " + localStorage.getItem("token") } }
         );
-
         this.editMode.name = false;
         this.fetchInstructorDetails();
       } catch (error) {
@@ -336,32 +387,65 @@ export default {
     async saveDocument(docType) {
       try {
         const newDate = this.editedDocuments[docType];
-
         const updateData = {
-          documents: [
-            {
-              documentType: docType,
-              expiryDate: newDate
-            }
-          ]
+          documents: [{ documentType: docType, expiryDate: newDate }]
         };
-
         await axios.put(
             `http://localhost:8080/instructors/update/${this.instructor.id}`,
             updateData,
-            {
-              headers: {
-                Authorization: "Bearer " + localStorage.getItem("token")
-              }
-            }
+            { headers: { Authorization: "Bearer " + localStorage.getItem("token") } }
         );
-
         this.cancelEditDocument(docType);
         this.fetchInstructorDetails();
       } catch (error) {
         console.error("Error updating document:", error);
         alert("Failed to update document.");
       }
+    },
+
+    selectCalendarEvent(event) {
+      this.selectedEvent = event;
+      this.showEventModal = true;
+    },
+
+    closeEventModal() {
+      this.showEventModal = false;
+      this.selectedEvent = null;
+    },
+
+    formatEventTime(event) {
+      const options = { hour: 'numeric', minute: '2-digit', hour12: true };
+      const start = new Date(event.startTime).toLocaleTimeString([], options);
+      const end = new Date(event.endTime).toLocaleTimeString([], options);
+      return `${start} - ${end}`;
+    },
+
+    formatDetailedDate(event) {
+      const start = new Date(event.startTime);
+      const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      return start.toLocaleDateString('en-US', dateOptions);
+    },
+
+    getEventStatus(event) {
+      const now = new Date();
+      const start = new Date(event.startTime);
+      const end = new Date(event.endTime);
+
+      if (now > end) return 'passed';
+      if (now >= start && now <= end) return 'ongoing';
+      if (event.accepted) return 'future-accepted';
+      return 'future-pending';
+    },
+
+    getEventStatusText(event) {
+      const now = new Date();
+      const start = new Date(event.startTime);
+      const end = new Date(event.endTime);
+
+      if (now > end) return 'Passed';
+      if (now >= start && now <= end) return 'In session';
+      if (event.accepted) return 'Accepted';
+      return 'Pending';
     },
 
     formatDate(date) {
@@ -415,29 +499,12 @@ export default {
   text-align: center;
   font-size: 2.5rem;
   margin-bottom: 40px;
-  color: #3a2a3c;
-  position: relative;
-  width: 100%;
-  font-weight: 600;
-  letter-spacing: 1px;
-}
-
-.page-title {
-  text-align: center;
-  font-size: 2.5rem;
-  margin-bottom: 40px;
   color: #342a3c;
   position: relative;
   width: 100%;
   font-weight: 600;
   letter-spacing: 0.5px;
   text-shadow: 0 2px 5px rgba(190, 143, 233, 0.15);
-}
-
-.page-title span {
-  position: relative;
-  display: inline-block;
-  padding-bottom: 5px;
 }
 
 .page-title::after {
@@ -453,7 +520,6 @@ export default {
   box-shadow: 0 0 12px rgba(190, 143, 233, 0.5);
   opacity: 0.8;
 }
-
 
 .details-card {
   background: white;
@@ -509,8 +575,6 @@ h3 {
   min-width: 100px;
   font-size: 0.95rem;
   letter-spacing: 0.5px;
-  align-self: center;
-  margin-top: 0px;
 }
 
 .value-container {
@@ -558,25 +622,12 @@ h3 {
   margin-left: 10px;
 }
 
-.icon-btn svg {
-  width: 16px;
-  height: 16px;
-}
-
 .icon-btn:hover {
   background: #be8fe9;
   border-color: #be8fe9;
   color: white;
   transform: scale(1.1);
   box-shadow: 0 4px 12px rgba(190, 143, 233, 0.3);
-}
-
-.icon-btn svg {
-  transition: transform 0.2s ease;
-}
-
-.icon-btn:hover svg {
-  transform: rotate(15deg);
 }
 
 .edit-mode {
@@ -589,17 +640,16 @@ h3 {
 
 .input-group {
   display: flex;
-  gap: 1px;
-  width: auto;
+  gap: 10px;
+  width: 100%;
 }
 
 .input-wrapper {
   flex: 1;
-  position: relative;
 }
 
 .modern-input {
-  width: 180px;
+  width: 100%;
   padding: 8px 12px;
   border: 2px solid #e9e1f5;
   border-radius: 8px;
@@ -607,7 +657,7 @@ h3 {
   transition: all 0.3s ease;
   background: white;
   color: #2c1f2d;
-  height: 30px;
+  height: 36px;
 }
 
 .modern-input:focus {
@@ -616,20 +666,10 @@ h3 {
   box-shadow: 0 0 0 3px rgba(190, 143, 233, 0.1);
 }
 
-.modern-input:hover {
-  border-color: #a06bc0;
-}
-
-.modern-input::placeholder {
-  color: #aaa;
-  font-size: 0.85rem;
-}
-
 .action-buttons {
   display: flex;
   gap: 10px;
-  justify-content: flex-start;
-  width: auto;
+  width: 100%;
 }
 
 .action-btn {
@@ -642,48 +682,32 @@ h3 {
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all 0.2s ease;
   border: none;
   color: white;
-  min-width: 90px;
-  height: 36px;
-}
-
-.action-btn svg {
-  width: 16px;
-  height: 16px;
-  transition: transform 0.2s ease;
-}
-
-.action-btn:hover svg {
-  transform: scale(1.2);
+  flex: 1;
 }
 
 .action-btn.save {
   background: linear-gradient(135deg, #be8fe9, #9f7ad6);
-  box-shadow: 0 4px 12px rgba(190, 143, 233, 0.3);
 }
 
 .action-btn.save:hover {
   background: linear-gradient(135deg, #a06bc0, #8a5bb0);
   transform: translateY(-2px);
-  box-shadow: 0 8px 18px rgba(190, 143, 233, 0.4);
+  box-shadow: 0 4px 12px rgba(190, 143, 233, 0.3);
 }
 
 .action-btn.cancel {
   background: linear-gradient(135deg, #d9c2f0, #c4a8e6);
   color: #4a3a5c;
-  box-shadow: 0 4px 12px rgba(201, 173, 227, 0.2);
 }
 
 .action-btn.cancel:hover {
   background: linear-gradient(135deg, #c4a8e6, #b392d9);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 18px rgba(190, 143, 233, 0.3);
-  color: #2c1f2d;
 }
 
-/* VEHICLE SECTION  */
+/* VEHICLE SECTION */
 .current-vehicle {
   background: #f8f4fc;
   padding: 20px;
@@ -712,31 +736,20 @@ h3 {
   padding: 10px 20px;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all 0.2s ease;
   margin-top: 15px;
   width: fit-content;
   font-weight: 600;
   font-size: 0.95rem;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   gap: 8px;
-  box-shadow: 0 4px 12px rgba(190, 143, 233, 0.3);
 }
 
 .remove-vehicle-btn:hover {
   background: linear-gradient(135deg, #a06bc0, #8a5bb0);
   transform: translateY(-2px);
-  box-shadow: 0 8px 18px rgba(190, 143, 233, 0.4);
-}
-
-.remove-vehicle-btn:active {
-  transform: translateY(0);
-}
-
-.remove-vehicle-btn svg {
-  width: 18px;
-  height: 18px;
+  box-shadow: 0 4px 12px rgba(190, 143, 233, 0.3);
 }
 
 .assign-form {
@@ -756,17 +769,12 @@ h3 {
   font-size: 1rem;
   background: white;
   cursor: pointer;
-  transition: all 0.3s ease;
 }
 
 .vehicle-select:focus {
   border-color: #be8fe9;
   outline: none;
   box-shadow: 0 0 0 3px rgba(190, 143, 233, 0.1);
-}
-
-.vehicle-select:hover {
-  border-color: #a06bc0;
 }
 
 .assign-btn {
@@ -776,12 +784,10 @@ h3 {
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   font-weight: 600;
   font-size: 1rem;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   gap: 8px;
   box-shadow: 0 4px 12px rgba(190, 143, 233, 0.3);
 }
@@ -792,25 +798,11 @@ h3 {
   box-shadow: 0 8px 18px rgba(190, 143, 233, 0.4);
 }
 
-.assign-btn:active:not(:disabled) {
-  transform: translateY(0);
-}
-
 .assign-btn:disabled {
-  background: linear-gradient(135deg, #d9d0e3, #c5b9cf);
-  color: #6b5b7a;
+  opacity: 0.5;
   cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-  opacity: 0.7;
 }
 
-.assign-btn svg {
-  width: 18px;
-  height: 18px;
-}
-
-/* DOCUMENTS SECTION */
 .documents-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -854,7 +846,6 @@ h3 {
   font-size: 0.9rem;
   width: 140px;
   background: white;
-  transition: all 0.3s ease;
 }
 
 .document-actions {
@@ -863,81 +854,257 @@ h3 {
   justify-content: flex-end;
 }
 
-.edit-doc-btn {
-  background: linear-gradient(135deg, #be8fe9, #9f7ad6);
-  color: white;
-  border: none;
+.edit-doc-btn,
+.save-doc-btn,
+.cancel-doc-btn {
   padding: 6px 14px;
   border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   font-size: 0.85rem;
   font-weight: 600;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   gap: 6px;
-  box-shadow: 0 2px 8px rgba(190, 143, 233, 0.2);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
 }
 
-.edit-doc-btn:hover {
-  background: linear-gradient(135deg, #a06bc0, #8a5bb0);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(190, 143, 233, 0.3);
-}
-
+.edit-doc-btn,
 .save-doc-btn {
   background: linear-gradient(135deg, #be8fe9, #9f7ad6);
   color: white;
-  border: none;
-  padding: 6px 14px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-  font-size: 0.85rem;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  box-shadow: 0 2px 8px rgba(190, 143, 233, 0.2);
-}
-
-.save-doc-btn:hover {
-  background: linear-gradient(135deg, #a06bc0, #8a5bb0);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(190, 143, 233, 0.3);
 }
 
 .cancel-doc-btn {
   background: linear-gradient(135deg, #d9c2f0, #c4a8e6);
   color: #4a3a5c;
-  border: none;
-  padding: 6px 14px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-  font-size: 0.85rem;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  box-shadow: 0 2px 8px rgba(201, 173, 227, 0.2);
+}
+
+.edit-doc-btn:hover,
+.save-doc-btn:hover {
+  background: linear-gradient(135deg, #a06bc0, #8a5bb0);
+  transform: translateY(-2px);
 }
 
 .cancel-doc-btn:hover {
   background: linear-gradient(135deg, #c4a8e6, #b392d9);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(190, 143, 233, 0.3);
-  color: #2c1f2d;
 }
 
-.edit-doc-btn svg,
-.save-doc-btn svg,
-.cancel-doc-btn svg {
-  width: 14px;
-  height: 14px;
+.calendar-section {
+  margin-top: 40px;
+  padding-top: 30px;
+  border-top: 2px solid #e9e1f5;
+}
+
+.calendar-wrapper {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  min-height: 500px;
+}
+
+.event-content {
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.event-content:hover {
+  transform: scale(1.01);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+}
+
+.event-content.future-accepted {
+  background: linear-gradient(135deg, #c8e6c9, #a5d6a7);
+  border-left: 3px solid #2e7d32;
+  color: #1b5e20;
+}
+
+.event-content.future-pending {
+  background: linear-gradient(135deg, #fff9c4, #fff59d);
+  border-left: 3px solid #f57f17;
+  color: #bf360c;
+}
+
+.event-content.ongoing {
+  background: linear-gradient(135deg, #e1bee7, #ce93d8);
+  border-left: 3px solid #6a1b9a;
+  color: #4a148c;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.8; }
+  100% { opacity: 1; }
+}
+
+.event-content.passed {
+  background: linear-gradient(135deg, #e0e0e0, #bdbdbd);
+  border-left: 3px solid #616161;
+  color: #424242;
+  opacity: 0.8;
+}
+
+.event-title {
+  font-weight: 700;
+  font-size: 0.75rem;
+  margin-bottom: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.event-time {
+  font-size: 0.65rem;
+  opacity: 0.9;
+  margin-bottom: 1px;
+}
+
+.event-category {
+  font-size: 0.65rem;
+  font-weight: 600;
+  margin-bottom: 1px;
+  text-transform: uppercase;
+}
+
+.event-status {
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from { transform: translateY(-30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e0e0e0;
+  background: #f9f2fb;
+  border-radius: 12px 12px 0 0;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #3a283c;
+  font-size: 1.3rem;
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: #9C27B0;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.modal-close-btn:hover {
+  background-color: rgba(156, 39, 176, 0.1);
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+.detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.detail-row {
+  display: flex;
+  align-items: flex-start;
+}
+
+.detail-label {
+  font-weight: 600;
+  color: #555;
+  width: 100px;
+  flex-shrink: 0;
+  font-size: 0.9rem;
+}
+
+.detail-value {
+  flex: 1;
+  color: #333;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge.future-accepted {
+  background: #e8f5e9;
+  color: #1b5e20;
+}
+
+.status-badge.future-pending {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.status-badge.ongoing {
+  background: #f3e5f5;
+  color: #4a148c;
+}
+
+.status-badge.passed {
+  background: #f5f5f5;
+  color: #393939;
 }
 
 .loading, .error {
@@ -974,17 +1141,6 @@ h3 {
 
   .action-buttons {
     flex-direction: column;
-    width: 100%;
-  }
-
-  .action-btn {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .display-value {
-    flex-direction: row;
-    align-items: center;
   }
 
   .assign-form {
