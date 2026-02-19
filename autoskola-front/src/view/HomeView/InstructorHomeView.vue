@@ -175,14 +175,12 @@ export default {
     box-shadow: 0 0 20px rgba(199, 147, 221, 0.8);
 }
 
-/* Main container for sidebar and content */
 .main-container {
     display: flex;
     min-height: calc(100vh - 80px);
-    margin-top: 80px; /* Height of the fixed header */
+    margin-top: 80px; 
 }
 
-/* Sidebar styles */
 .sidebar {
     width: 250px;
     background: linear-gradient(180deg, #3a283c 0%, #2c1f2d 100%);
@@ -263,10 +261,9 @@ export default {
     color: rgba(255, 255, 255, 0.7);
 }
 
-/* Main content area */
 .content-area {
     flex: 1;
-    margin-left: 250px; /* Width of sidebar */
+    margin-left: 250px; 
     padding: 20px;
     background-color: #f5f5f7;
     min-height: calc(100vh - 80px);
