@@ -144,7 +144,8 @@
         :status-text="getEventStatusText(selectedEvent)"
         :status-class="getEventStatus(selectedEvent)"
         @close="showTheoryModal = false; selectedEvent = null"
-        
+        @enroll="enrollInTheory"
+        @leave="leaveTheory"
       />
 
 
@@ -256,12 +257,30 @@ export default {
       }
 
     },
-    enrollInTheory(){
+    enrollInTheory(classId) {
+      const token = localStorage.getItem('token');
+      axios.patch(`http://localhost:8080/theoryclass/enroll/${classId}`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      .then(() => {
+        this.selectedEvent.enrolled = true;
+        this.selectedEvent.available = false;
+        this.showTheoryModal = false;
+      })
+      .catch(err => alert(err.response?.data || "Enrollment failed"));
+    },
 
-
-
-
-
+    leaveTheory(classId) {
+      const token = localStorage.getItem('token');
+      axios.patch(`http://localhost:8080/theoryclass/leave/${classId}`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      .then(() => {
+        this.selectedEvent.enrolled = false;
+        this.selectedEvent.available = true;
+        this.showTheoryModal = false;
+      })
+      .catch(err => console.error("Error leaving class", err));
     },
     selectEvent(event) {
       this.selectedEvent = event;
@@ -398,10 +417,6 @@ export default {
         
     }
 
-   
-
-      
-
         axios.delete(
           `http://localhost:8080/practicalclass/deleteById/${id}`,
           { headers: { Authorization: `Bearer ${token}` } }
@@ -416,8 +431,6 @@ export default {
         .catch(error => {
           console.error("Delete error:", error);
         });
-
-      
 
   },
 

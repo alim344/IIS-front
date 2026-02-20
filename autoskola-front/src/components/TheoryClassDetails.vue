@@ -37,13 +37,13 @@
 
           <div class="modal-actions">
             <button 
-                class="enroll-btn" 
-                :class="{ 'passed-btn': isPassed }"
-                @click="handleEnroll" 
-                :disabled="isDisabled"
-                >
-                {{ buttonText }}
-                </button>
+              class="enroll-btn" 
+              :class="{ 'passed-btn': isPassed, 'leave-btn': event.enrolled }"
+              @click="handleAction" 
+              :disabled="isPassed || (!event.enrolled && !event.available)"
+            >
+              {{ buttonText }}
+            </button>
           </div>
         </div>
       </div>
@@ -69,19 +69,23 @@ export default {
       const start = new Date(event.startTime).toLocaleTimeString([], options);
       const end = new Date(event.endTime).toLocaleTimeString([], options);
       return `${start} - ${end}`;
-    }
+    },
+    handleAction() {
+      if (this.event.enrolled) {
+        this.$emit('leave', this.event.id);
+      } else {
+        this.$emit('enroll', this.event.id);
+      }
+    },
   },
   computed: {
     isPassed() {
         return new Date() > new Date(this.event.endTime);
     },
-    isDisabled() {
-        return this.isPassed || this.event.enrolled || !this.event.available;
-    },
     buttonText() {
-        if (this.isPassed) return 'CLASS PASSED';
-        if (this.event.enrolled) return 'ALREADY ENROLLED';
-        return 'ENROLL IN CLASS';
+      if (this.isPassed) return 'CLASS PASSED';
+      if (this.event.enrolled) return 'LEAVE CLASS';
+      return 'ENROLL IN CLASS';
     }
 }
 }
@@ -165,6 +169,16 @@ export default {
   cursor: not-allowed;
   transform: none !important; 
   box-shadow: none !important;
+}
+
+.enroll-btn.leave-btn {
+  background-color: #fff3e0;
+  color: #e65100;
+  border-color: #ffb74d;
+}
+
+.enroll-btn.leave-btn:hover {
+  background-color: #ffe0b2;
 }
 
 
