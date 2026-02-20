@@ -45,6 +45,7 @@ export default {
         { id: 3, text: 'Professors', path: '/adminHome/professors' },
         { id: 4, text: 'Vehicles', path: '/adminHome/vehicles' },
         { id: 5, text: 'Assignments', path: '/adminHome/assignments'},
+        { id: 6, text: 'Notifications', path: '/adminHome/notifications' },
         { id: 6, text: 'Profile', path: '/adminHome/profile' },
       ]
     };
