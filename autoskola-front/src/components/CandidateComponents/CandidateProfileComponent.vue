@@ -149,34 +149,62 @@
       </div>
 
       <div class="stats-section">
-        <h2>Learning Progress</h2>
+  <h2>Learning Progress</h2>
 
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-value">{{ candidate.theoryClassesAttended || 0 }}</div>
-            <div class="stat-label">Theory Classes Attended</div>
-            <div class="stat-detail">of 40 required</div>
-            <div class="progress-bar">
-              <div class="progress-fill" :style="{ width: theoryProgress + '%' }"></div>
-            </div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-value">{{ candidate.practicalClassesAttended || 0 }}</div>
-            <div class="stat-label">Practical Classes Attended</div>
-            <div class="stat-detail">of 40 required</div>
-            <div class="progress-bar">
-              <div class="progress-fill" :style="{ width: practicalProgress + '%' }"></div>
-            </div>
-          </div>
-
-          <div class="stat-card" v-if="candidate.category">
-            <div class="stat-value">🚘</div>
-            <div class="stat-label">Category</div>
-            <div class="stat-detail">{{ candidate.category }}</div>
-          </div>
+  <div v-if="loadingProgress" class="loading-progress">Loading progress data...</div>
+  <div v-else-if="progressError" class="error-progress">{{ progressError }}</div>
+  <div v-else class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-value">{{ progress.theory.attended }}</div>
+      <div class="stat-label">Theory Classes Attended</div>
+      <div class="stat-detail">of {{ progress.theory.total }} required</div>
+      <div class="progress-bar">
+        <div class="progress-fill" :style="{ width: theoryProgress + '%' }"></div>
+      </div>
+      
+      <!-- Recent theory classes -->
+      <div class="recent-classes" v-if="progress.theory.recentClasses.length">
+        <h4>Recent:</h4>
+        <div v-for="cls in progress.theory.recentClasses.slice(0, 3)" :key="cls.id" class="recent-item">
+          <span class="recent-name">{{ cls.lessonName }}</span>
+          <span class="recent-date">{{ formatDateTime(cls.date) }}</span>
+          <span class="recent-status" :class="{ 'attended': cls.attended }">
+            {{ cls.attended ? '✓' : '✗' }}
+          </span>
         </div>
       </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-value">{{ progress.practical.attended }}</div>
+      <div class="stat-label">Practical Classes Attended</div>
+      <div class="stat-detail">of {{ progress.practical.total }} required</div>
+      <div class="progress-bar">
+        <div class="progress-fill" :style="{ width: practicalProgress + '%' }"></div>
+      </div>
+      
+      <!-- Recent practical classes -->
+      <div class="recent-classes" v-if="progress.practical.recentClasses.length">
+        <h4>Recent:</h4>
+        <div v-for="cls in progress.practical.recentClasses.slice(0, 3)" :key="cls.id" class="recent-item">
+          <span class="recent-name">{{ cls.instructorName }}</span>
+          <span class="recent-date">{{ formatDateTime(cls.date) }}</span>
+          <span class="recent-status" :class="{ 'attended': cls.attended, 'scheduled': !cls.attended && cls.accepted }">
+            <span v-if="cls.attended">✓</span>
+            <span v-else-if="cls.accepted">⏳</span>
+            <span v-else>✗</span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="stat-card" v-if="candidate.category">
+      <div class="stat-value">🚘</div>
+      <div class="stat-label">Category</div>
+      <div class="stat-detail">{{ candidate.category }}</div>
+    </div>
+  </div>
+</div>
     </div>
 
     <div v-if="showEditModal" class="modal-overlay" @click="closeEditModal">
@@ -342,23 +370,39 @@ export default {
         preferredDate: '',
         preferredStartTime: '',
         preferredEndTime: ''
-      }
+      },
+      // NOVO: Progress podaci
+      progress: {
+        theory: {
+          attended: 0,
+          total: 30,
+          recentClasses: []
+        },
+        practical: {
+          attended: 0,
+          total: 40,
+          recentClasses: []
+        }
+      },
+      loadingProgress: false,
+      progressError: null
     }
   },
 
   computed: {
     theoryProgress() {
-      return Math.min(((this.candidate?.theoryClassesAttended || 0) / 40) * 100, 100);
+      // Koristi realne podatke iz progress objekta
+      return Math.min((this.progress.theory.attended / this.progress.theory.total) * 100, 100);
     },
     practicalProgress() {
-      return Math.min(((this.candidate?.practicalClassesAttended || 0) / 40) * 100, 100);
+      return Math.min((this.progress.practical.attended / this.progress.practical.total) * 100, 100);
     },
     statusClass() {
       const status = this.candidate?.status?.toUpperCase();
       return {
-        'status-active': status === 'ACTIVE',
-        'status-pending': status === 'PENDING',
-        'status-completed': status === 'COMPLETED'
+        'status-active': status === 'ACTIVE' || status === 'THEORY' || status === 'PRACTICAL',
+        'status-pending': status === 'PENDING' || status === 'REGISTERED',
+        'status-completed': status === 'COMPLETED' || status === 'FINISHED'
       };
     },
     minDate() {
@@ -372,15 +416,22 @@ export default {
 
   methods: {
     async fetchData() {
-      await Promise.all([
-        this.fetchMyProfile(),
-        this.fetchPreferences()
-      ]);
+      this.loading = true;
+      try {
+        await Promise.all([
+          this.fetchMyProfile(),
+          this.fetchPreferences(),
+          this.fetchProgress() // NOVO: Učitaj progres
+        ]);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        this.loading = false;
+      }
     },
 
     async fetchMyProfile() {
       try {
-        this.loading = true;
         const response = await axios.get("http://localhost:8080/candidates/myprofile", {
           headers: {
             Authorization: "Bearer " + localStorage.getItem("token")
@@ -404,8 +455,6 @@ export default {
           localStorage.removeItem("token");
           this.$router.push("/login");
         }
-      } finally {
-        this.loading = false;
       }
     },
 
@@ -418,6 +467,64 @@ export default {
         this.preferences = response.data;
       } catch (error) {
         console.error("Error fetching preferences:", error);
+      }
+    },
+
+    async fetchProgress() {
+      this.loadingProgress = true;
+      this.progressError = null;
+      
+      try {
+        const token = localStorage.getItem("token");
+
+        console.log("Token exists:", !!token);
+        console.log("Token length:", token?.length);
+        
+        const theoryResponse = await axios.get("http://localhost:8080/candidates/progress/theory", {
+          headers: { Authorization: "Bearer " + token }
+        });
+        
+        const practicalResponse = await axios.get("http://localhost:8080/candidates/progress/practical", {
+          headers: { Authorization: "Bearer " + token }
+        });
+        
+        this.progress = {
+          theory: {
+            attended: theoryResponse.data.attended || 0,
+            total: theoryResponse.data.total || 40,
+            recentClasses: theoryResponse.data.recentClasses || []
+          },
+          practical: {
+            attended: practicalResponse.data.attended || 0,
+            total: practicalResponse.data.total || 40,
+            recentClasses: practicalResponse.data.recentClasses || []
+          }
+        };
+        
+      } catch (error) {
+        console.error("Error fetching progress:", error);
+        this.progressError = "Failed to load progress data";
+        
+        this.progress = {
+          theory: {
+            attended: 12,
+            total: 30,
+            recentClasses: [
+              { id: 1, lessonName: 'Uvod u saobraćajne propise', date: '2026-02-18T10:00:00', attended: true },
+              { id: 2, lessonName: 'Osnovna pravila saobraćaja', date: '2026-02-16T14:00:00', attended: true }
+            ]
+          },
+          practical: {
+            attended: 8,
+            total: 40,
+            recentClasses: [
+              { id: 1, instructorName: 'Marko Markovic', date: '2026-02-20T09:00:00', attended: true },
+              { id: 2, instructorName: 'Marko Markovic', date: '2026-02-18T14:00:00', attended: true }
+            ]
+          }
+        };
+      } finally {
+        this.loadingProgress = false;
       }
     },
 
@@ -500,7 +607,7 @@ export default {
       };
     },
 
-      closePreferencesModal() {
+    closePreferencesModal() {
       this.showPreferencesModal = false;
       this.preferencesError = null;
       this.preferencesSuccess = null;
@@ -522,6 +629,14 @@ export default {
       const start = startTime ? startTime.substring(0, 5) : '--:--';
       const end = endTime ? endTime.substring(0, 5) : '--:--';
       return `${start} - ${end}`;
+    },
+    
+    formatDateTime(date) {
+      if (!date) return '';
+      return new Date(date).toLocaleDateString('en-GB', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      });
     }
   },
 
@@ -986,5 +1101,83 @@ h2 {
   .time-row {
     grid-template-columns: 1fr;
   }
+}
+
+/* Recent Classes */
+.recent-classes {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #e9e1f5;
+  text-align: left;
+}
+
+.recent-classes h4 {
+  font-size: 0.9rem;
+  color: #6b5b7a;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.recent-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 0.85rem;
+  border-bottom: 1px dashed #f0e8fa;
+}
+
+.recent-item:last-child {
+  border-bottom: none;
+}
+
+.recent-name {
+  flex: 1;
+  color: #4f364b;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100px;
+}
+
+.recent-date {
+  color: #888;
+  font-size: 0.75rem;
+  margin: 0 8px;
+}
+
+.recent-status {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.recent-status.attended {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.recent-status.scheduled {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.loading-progress, .error-progress {
+  padding: 20px;
+  text-align: center;
+  background: #f8f4fc;
+  border-radius: 8px;
+  color: #666;
+}
+
+.error-progress {
+  color: #c62828;
+  background: #ffebee;
 }
 </style>
