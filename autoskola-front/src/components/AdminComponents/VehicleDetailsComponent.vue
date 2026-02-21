@@ -167,12 +167,20 @@
         <div class="statistics-section">
           <div class="section-header">
             <h2>Monthly Statistics</h2>
-            <div class="month-selector">
+            <div class="header-actions">
               <select v-model="selectedMonth" @change="fetchVehicleStats" class="month-select">
                 <option v-for="month in availableMonths" :key="month.value" :value="month.value">
                   {{ month.label }}
                 </option>
               </select>
+              <button class="pdf-btn" @click="downloadPdf" :disabled="!vehicleStats || pdfLoading">
+                <span v-if="pdfLoading" class="spinner-small"></span>
+                <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4V4c0-1.1-.9-2-2-2z" fill="currentColor"/>
+                  <path d="M6 9h12v2H6zm0 4h8v2H6z" fill="white"/>
+                </svg>
+                PDF Report
+              </button>
             </div>
           </div>
 
@@ -311,7 +319,8 @@ export default {
         registrationExpiryDate: ''
       },
       selectedMonth: this.getCurrentYearMonth(),
-      availableMonths: this.generateLast12Months()
+      availableMonths: this.generateLast12Months(),
+      pdfLoading: false
     }
   },
 
@@ -559,6 +568,39 @@ export default {
 
     goBack() {
       this.$router.push('/adminHome/vehicles');
+    },
+
+    async downloadPdf() {
+      if (!this.vehicleStats || !this.selectedMonth) return;
+
+      this.pdfLoading = true;
+      try {
+        const [year, month] = this.selectedMonth.split('-');
+        const response = await axios.get(
+            `http://localhost:8080/vehicles/${this.vehicle.id}/report`,
+            {
+              params: { year, month },
+              headers: { Authorization: "Bearer " + localStorage.getItem("token") },
+              responseType: 'blob' // Važno za PDF
+            }
+        );
+
+        // Kreiraj link za preuzimanje
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `vehicle_${this.vehicle.registrationNumber}_${this.selectedMonth}.pdf`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+
+      } catch (error) {
+        console.error('Error downloading PDF:', error);
+        alert('Failed to download PDF report.');
+      } finally {
+        this.pdfLoading = false;
+      }
     }
   }
 }
@@ -1226,6 +1268,61 @@ h3 {
   .instructor-link {
     padding: 6px 10px;
     font-size: 0.85rem;
+  }
+}
+
+.header-actions {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.pdf-btn {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 30px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+  white-space: nowrap;
+}
+
+.pdf-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #c82333, #bd2130);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(220, 53, 69, 0.4);
+}
+
+.pdf-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.spinner-small {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@media (max-width: 768px) {
+  .header-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .pdf-btn {
+    width: 100%;
+    justify-content: center;
   }
 }
 </style>
