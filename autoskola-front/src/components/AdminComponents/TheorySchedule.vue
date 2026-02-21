@@ -1,6 +1,11 @@
 <template>
   <div class="theory-schedule-section">
-    <h1 class="page-title">Theory Schedule</h1>
+    <div class="header-with-back">
+      <button class="back-home-btn" @click="goToAdminHome">
+        ← Back to Dashboard
+      </button>
+      <h1 class="page-title">Theory Schedule</h1>
+    </div>
 
     <!-- MODE SELECTOR -->
     <div class="mode-tabs">
@@ -177,6 +182,10 @@ export default {
   },
 
   methods: {
+    goToAdminHome() {
+      window.location.href = "http://localhost:8081/adminHome";
+    },
+
     async generate() {
       this.loading = true;
       this.result = null;
@@ -284,11 +293,42 @@ export default {
   margin: 0 auto;
 }
 
+.header-with-back {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 30px;
+  position: relative;
+}
+
+.back-home-btn {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #6c757d, #495057);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.back-home-btn:hover {
+  transform: translateX(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  background: linear-gradient(135deg, #5a6268, #343a40);
+}
+
 .page-title {
   text-align: center;
   font-size: 2.5rem;
-  margin-bottom: 30px;
   color: #4f364b;
+  margin: 0;
+  flex-grow: 1;
 }
 
 /* MODE TABS */
