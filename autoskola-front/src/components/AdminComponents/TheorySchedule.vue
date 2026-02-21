@@ -74,22 +74,8 @@
       </div>
 
       <div v-else>
-        <!-- CALENDAR VIEW -->
-        <WeeklyCalendar
-            :events="calendarEvents"
-            :startHour="8"
-            @event-click="openClassDetails"
-        >
-          <template #event="{ event }">
-            <div class="cal-event-time">{{ formatTime(event.startTime) }}</div>
-            <div class="cal-event-title">{{ event.lessonName }}</div>
-            <div class="cal-event-prof">{{ event.professorName }}</div>
-            <div class="cal-event-count">{{ event.enrolledStudents }} students</div>
-          </template>
-        </WeeklyCalendar>
-
-        <!-- CLASS CARDS BELOW CALENDAR -->
-        <h2 class="section-subtitle">All Classes</h2>
+        <!-- CLASS CARDS -->
+        <h2 class="section-subtitle" v-if="schedule.length > 0">All Classes</h2>
         <div class="classes-grid">
           <div
               class="class-card"
@@ -98,10 +84,10 @@
               @click="openClassDetails(cls)"
           >
             <div class="class-card-header">
-              <span class="lesson-badge">Lesson {{ cls.theoryLesson.orderNumber }}</span>
+              <span class="lesson-badge">Lesson {{ cls.theoryLesson?.orderNumber }}</span>
               <span class="slot-badge">{{ getSlotLabel(cls.startTime) }}</span>
             </div>
-            <h3 class="lesson-name">{{ cls.theoryLesson.name }}</h3>
+            <h3 class="lesson-name">{{ cls.theoryLesson?.name }}</h3>
             <div class="class-meta">
               <div class="meta-row">
                 <span class="meta-label">📅 Date</span>
@@ -113,7 +99,7 @@
               </div>
               <div class="meta-row">
                 <span class="meta-label">👨‍🏫 Professor</span>
-                <span>{{ cls.professor.name }} {{ cls.professor.lastname }}</span>
+                <span>{{ cls.professor?.name }} {{ cls.professor?.lastname }}</span>
               </div>
               <div class="meta-row">
                 <span class="meta-label">👥 Students</span>
@@ -128,7 +114,7 @@
       </div>
     </div>
 
-    <!-- CLASS DETAIL MODAL -->
+    <!-- CLASS DETAIL MODAL WITH DELETE BUTTON -->
     <div v-if="selectedClass" class="modal-overlay" @click.self="selectedClass = null">
       <div class="modal">
         <button class="modal-close" @click="selectedClass = null">✕</button>
@@ -148,16 +134,20 @@
           </div>
         </div>
 
-        <h3 class="students-title">Students ({{ selectedClass.students?.length }})</h3>
+        <h3 class="students-title">Students ({{ selectedClass.students?.length || 0 }})</h3>
         <div class="students-list">
           <div class="student-row" v-for="s in selectedClass.students" :key="s.id">
             <span class="student-name">{{ s.name }} {{ s.lastname }}</span>
             <span class="student-category">{{ s.category }}</span>
           </div>
+          <div v-if="!selectedClass.students?.length" class="empty-students">
+            No students enrolled yet
+          </div>
         </div>
 
-        <button class="complete-btn" @click="markCompleted(selectedClass.id)">
-          Mark as Completed
+        <!-- DELETE BUTTON -->
+        <button class="delete-btn" @click="deleteClass(selectedClass.id)">
+          🗑️ Delete Class
         </button>
       </div>
     </div>
@@ -167,10 +157,11 @@
 
 <script>
 import axios from "axios";
-import WeeklyCalendar from "@/components/WeeklyCalendar.vue";
 
 export default {
-  components: { WeeklyCalendar },
+  components: {
+    // WeeklyCalendar removed
+  },
 
   data() {
     return {
@@ -183,18 +174,6 @@ export default {
       schedule: [],
       selectedClass: null,
     };
-  },
-
-  computed: {
-    calendarEvents() {
-      return this.schedule.map(cls => ({
-        ...cls,
-        title: cls.theoryLesson?.name,
-        lessonName: `L${cls.theoryLesson?.orderNumber}: ${cls.theoryLesson?.name}`,
-        professorName: `${cls.professor?.name} ${cls.professor?.lastname}`,
-        accepted: true,
-      }));
-    }
   },
 
   methods: {
@@ -217,52 +196,60 @@ export default {
     },
 
     async fetchSchedule() {
-  this.loadingSchedule = true;
-  this.schedule = [];
-  try {
-    const endpoint = this.weekView === "next"
-        ? "http://localhost:8080/theoryclass/next-week"
-        : "http://localhost:8080/theoryclass/this-week";
-    const response = await axios.get(endpoint, {
-      headers: { Authorization: "Bearer " + localStorage.getItem("token") }
-    });
-    
-    // DEBUG
-    console.log("Response:", response.data);
-    console.log("Is array?", Array.isArray(response.data));
-    
-    // Proveri da li je niz
-    if (Array.isArray(response.data)) {
-      this.schedule = response.data;
-    } else {
-      console.error("Response is not an array:", response.data);
+      this.loadingSchedule = true;
       this.schedule = [];
-    }
-  } catch (e) {
-    console.error("Error fetching schedule:", e);
-    this.schedule = []; // Obavezno postavi prazan niz
-  } finally {
-    this.loadingSchedule = false;
-  }
-},
-
-    async markCompleted(classId) {
       try {
-        await axios.post(
-            `http://localhost:8080/theoryclass/${classId}/complete`,
-            {},
-            { headers: { Authorization: "Bearer " + localStorage.getItem("token") } }
-        );
-        this.selectedClass = null;
-        this.fetchSchedule();
-        alert("Class marked as completed. Attended lessons updated.");
+        const endpoint = this.weekView === "next"
+            ? "http://localhost:8080/theoryclass/next-week"
+            : "http://localhost:8080/theoryclass/this-week";
+        const response = await axios.get(endpoint, {
+          headers: { Authorization: "Bearer " + localStorage.getItem("token") }
+        });
+        
+        // DEBUG
+        console.log("Response:", response.data);
+        console.log("Is array?", Array.isArray(response.data));
+        
+        // Proveri da li je niz
+        if (Array.isArray(response.data)) {
+          this.schedule = response.data;
+        } else {
+          console.error("Response is not an array:", response.data);
+          this.schedule = [];
+        }
       } catch (e) {
-        alert("Error marking class as completed.");
+        console.error("Error fetching schedule:", e);
+        this.schedule = []; // Obavezno postavi prazan niz
+      } finally {
+        this.loadingSchedule = false;
+      }
+    },
+
+    async deleteClass(classId) {
+      if (!confirm("Are you sure you want to delete this class? This action cannot be undone.")) {
+        return;
+      }
+      
+      try {
+        await axios.delete(`http://localhost:8080/theoryclass/${classId}`, {
+          headers: { Authorization: "Bearer " + localStorage.getItem("token") }
+        });
+        
+        // Close the modal
+        this.selectedClass = null;
+        
+        // Refresh the schedule
+        await this.fetchSchedule();
+        
+        // Show success message (optional)
+        alert("Class deleted successfully!");
+      } catch (e) {
+        console.error("Error deleting class:", e);
+        alert(e.response?.data?.message || "Error deleting class. Please try again.");
       }
     },
 
     openClassDetails(cls) {
-      // cls može biti iz calendar eventa ili direktno iz schedule
       this.selectedClass = this.schedule.find(c => c.id === cls.id) || cls;
     },
 
@@ -509,17 +496,11 @@ export default {
   color: white;
 }
 
-/* CALENDAR EVENTS */
-.cal-event-time { font-size: 9px; font-weight: bold; opacity: 0.8; }
-.cal-event-title { font-size: 10px; font-weight: 700; margin: 1px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cal-event-prof { font-size: 9px; opacity: 0.75; }
-.cal-event-count { font-size: 9px; margin-top: 2px; }
-
 /* SECTION SUBTITLE */
 .section-subtitle {
   color: #4f364b;
   font-size: 1.4rem;
-  margin: 30px 0 15px 0;
+  margin: 0 0 15px 0;
 }
 
 /* CLASSES GRID */
@@ -730,10 +711,18 @@ export default {
   border-radius: 10px;
 }
 
-.complete-btn {
+.empty-students {
+  text-align: center;
+  padding: 20px;
+  color: #888;
+  font-style: italic;
+}
+
+/* DELETE BUTTON STYLES */
+.delete-btn {
   width: 100%;
   padding: 12px;
-  background: linear-gradient(135deg, #4CAF50, #388e3c);
+  background: linear-gradient(135deg, #f44336, #d32f2f);
   color: white;
   border: none;
   border-radius: 10px;
@@ -741,10 +730,19 @@ export default {
   font-weight: 700;
   cursor: pointer;
   transition: all 0.3s;
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
-.complete-btn:hover {
+.delete-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+  box-shadow: 0 6px 20px rgba(244, 67, 54, 0.4);
+}
+
+.delete-btn:active {
+  transform: translateY(0);
 }
 </style>
