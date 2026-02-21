@@ -100,13 +100,74 @@
             
             </div>
 
-            <div v-else-if="scheduleMode === 'alg'">
-            <h4>ALgorithm scheduling</h4>
-            <p>Click on days you want less classes</p>
 
-            <button class="sidebar-action primary">Add class</button>
-            
+            <!--ALG MODE-->
+            <div v-else-if="scheduleMode === 'alg'">
+              <h4>Computer schedule</h4>
+              
+              <div class="alg-container">
+                <div class="alg-step">
+                  <p class="alg-step-title">Pick next weeks dates to be less available</p>
+                  
+             
+                  <div class="days-checkbox-list">
+                    <div 
+                      v-for="day in nextWeekDays" 
+                      :key="day.fullDate"
+                      class="day-checkbox-item"
+                      @click="toggleLightDay(day)"
+                    >
+                      <input 
+                        type="checkbox" 
+                        :checked="isLightDaySelected(day)"
+                        class="day-checkbox"
+                      />
+                      <span class="day-name">{{ day.name }}, {{ day.date }}. {{ day.monthName }}</span>
+                    </div>
+                  </div>
+                  
+                 
+                  
+                </div>
+
+                
+                  <div class="alg-step">
+                    <p class="alg-step-title">Choose candidate</p>
+                    <div class="candidate-list">
+                      <div 
+                        v-for="candidate in timepref"  
+                        :key="candidate.email"
+                        class="candidate-item"
+                        @click="toggleCandidate(candidate)"
+                      >
+                        <input 
+                          type="checkbox" 
+                          :checked="isCandidateSelected(candidate)"
+                          class="candidate-checkbox"
+                        />
+                        <span>{{ candidate.candidate_name }} {{ candidate.canddiate_lastname }} - {{ candidate.category }}</span>
+                      </div>
+                      <div v-if="timepref.length === 0" class="no-data">
+                        No available candidates
+                      </div>
+                    </div>
+                  </div>
+
+                
+                <button 
+                  class="alg-generate-btn"
+                  :disabled="selectedCandidates.size === 0"
+                  @click="generateSchedule"
+                >
+                  GENERATE
+                </button>
+              </div>
             </div>
+
+
+
+
+
           </div>
 
            <!--EDIT MODAL-->
@@ -259,6 +320,8 @@ export default {
         
       },
       requestId:null,
+      selectedLightDays: [],
+     selectedCandidates: new Set(),
        
      
     };
@@ -290,6 +353,33 @@ export default {
       }
       return daysArray;
     },
+    nextWeekDays() {
+      const today = new Date();
+      const dayOfWeek = today.getDay();
+      
+      const thisMonday = new Date(today);
+      thisMonday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+      
+    
+      const nextMonday = new Date(thisMonday);
+      nextMonday.setDate(thisMonday.getDate() + 7);
+      
+      const days = [];
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(nextMonday);
+        date.setDate(nextMonday.getDate() + i);
+        
+        days.push({
+          name: date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(),
+          date: date.getDate(),
+          month: date.getMonth(),
+          year: date.getFullYear(),
+          fullDate: date,
+          monthName: date.toLocaleDateString('en-US', { month: 'short' })
+        });
+      }
+      return days;
+    },
    
     filteredItems(){
       if (!this.selectedDay) {
@@ -307,7 +397,8 @@ export default {
       const itemDate = new Date(item.date);
       return itemDate.toDateString() === selected.toDateString();
     });
-    }
+    },
+    
 
   },
 
@@ -325,6 +416,11 @@ export default {
 
       return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00`;
     },
+    toLocalDateString(date) {
+      const pad = n => n.toString().padStart(2, '0');
+      
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+    },
     getTimePrefs(){
        const token = localStorage.getItem("token");
 
@@ -334,8 +430,7 @@ export default {
                 .then(response => {this.timepref = response.data})
                 .catch(error => { console.error("Fetch error:", error); })
             }
-    }
-,
+    },
     selectMode(mode) {
         this.scheduleMode = mode;
         this.showScheduleModal = false;
@@ -756,10 +851,13 @@ export default {
       this.scheduleMode= null; 
       this.selectedDay=null;
       this.selectedTimePref=null;
+      this.selectedCandidates= new Set();
+      this.selectedLightDays = [];
 
     },
     saveSchedule(){
       if(this.draftEvents.length == 0){
+        alert('The schedule has not been created');
         return;
       }
 
@@ -839,10 +937,74 @@ export default {
     });
 
 
-  }
-   
-
   },
+   toggleLightDay(day) {
+    const index = this.selectedLightDays.findIndex(d => d.fullDate === day.fullDate);
+    if (index === -1) {
+      this.selectedLightDays.push(day);
+    } else {
+      this.selectedLightDays.splice(index, 1);
+    }
+  },
+  
+  isLightDaySelected(day) {
+    return this.selectedLightDays.some(d => d.fullDate === day.fullDate);
+    
+  },
+  toggleCandidate(candidate) {
+    if (this.selectedCandidates.has(candidate.email)) {
+      this.selectedCandidates.delete(candidate.email);
+    } else {
+      this.selectedCandidates.add(candidate.email);
+    }
+    this.selectedCandidates = new Set(this.selectedCandidates); // za reactivity
+  },
+  
+  isCandidateSelected(candidate) {
+    return this.selectedCandidates.has(candidate.email);
+  },
+
+
+  generateSchedule(){
+    if (this.selectedCandidates.size === 0) {
+      alert('You have to pick at least one candidate');
+      return;
+    }
+
+    if (this.selectedLightDays.length > 2) {
+        alert("You can only pick two days");
+        return; 
+    }
+
+    const lightDays = this.selectedLightDays.map(day => 
+      this.toLocalDateString(new Date(day.fullDate))
+    );
+
+    
+
+    const emails = Array.from(this.selectedCandidates);
+
+
+    const scheduleData=
+          {  lightDays : lightDays,
+             emails :emails,}
+
+
+      axios.post('http://localhost:8080/practicalclass/schedule/alg', scheduleData)
+        .then(response=> { 
+          this.draftEvents = response.data.map(e => ({
+            ...e,
+            isDraft: true,     
+            accepted: false   
+          }));
+        }).catch(err => {
+       
+          alert("Error has happened!!"+err);
+          
+      });
+    
+  },
+}
 };
 </script>
 
@@ -1242,5 +1404,136 @@ export default {
 }
 
 
+.alg-container {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  padding: 10px 0;
+}
 
+.alg-step {
+  background: #f9f9f9;
+  padding: 15px;
+  border-radius: 8px;
+  border-left: 4px solid rgb(190, 143, 233);
+}
+
+.alg-step-title {
+  margin: 0 0 15px 0;
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+}
+
+/* Checkbox lista za dane */
+.days-checkbox-list {
+  max-height: 250px;
+  overflow-y: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: white;
+  margin-bottom: 10px;
+}
+
+.day-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 15px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.day-checkbox-item:hover {
+  background: #f0e6ff;
+}
+
+.day-checkbox-item:last-child {
+  border-bottom: none;
+}
+
+.day-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: rgb(190, 143, 233);
+}
+
+.day-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.selected-summary {
+  background: #e8f5e9;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #2e7d32;
+}
+
+/* Lista kandidata */
+.candidate-list {
+  max-height: 250px;
+  overflow-y: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: white;
+}
+
+.candidate-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 15px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.candidate-item:hover {
+  background: #f0e6ff;
+}
+
+.candidate-item:last-child {
+  border-bottom: none;
+}
+
+.candidate-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: rgb(190, 143, 233);
+}
+
+.no-data {
+  padding: 30px;
+  text-align: center;
+  color: #999;
+  font-style: italic;
+}
+
+.alg-generate-btn {
+  width: 100%;
+  padding: 14px;
+  background: rgb(190, 143, 233);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background 0.2s;
+}
+
+.alg-generate-btn:hover:not(:disabled) {
+  background: #9b7bb5;
+}
+
+.alg-generate-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
 </style>
