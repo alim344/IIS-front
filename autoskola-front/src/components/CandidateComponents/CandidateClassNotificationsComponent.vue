@@ -66,6 +66,7 @@ export default {
         case 'UPDATE': return 'theme-update';
         case 'CLASS': return 'theme-class';
         case 'REQUEST': return 'theme-request';
+        case 'TIME_PREFERENCE': return 'theme-preference'
         default: return 'theme-default';
       }
     }
@@ -158,6 +159,13 @@ export default {
   background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
   color: #ef6c00;
   border-left: 8px solid #ff9800;
+}
+
+.theme-preference{
+  background: linear-gradient(135deg, #fff3e0 0%, #ffb2c3 100%);
+  color:#e700ef ;
+  border-left: 8px solid #c015b2;
+
 }
 
 .theme-default {
