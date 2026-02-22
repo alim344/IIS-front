@@ -67,6 +67,7 @@ export default {
         case 'CLASS': return 'theme-class';
         case 'REQUEST': return 'theme-request';
         case 'TIME_PREFERENCE': return 'theme-preference'
+        case 'THEORY_EXAM': return 'theme-exam'
         default: return 'theme-default';
       }
     }
@@ -162,9 +163,16 @@ export default {
 }
 
 .theme-preference{
-  background: linear-gradient(135deg, #fff3e0 0%, #ffb2c3 100%);
+  background: linear-gradient(135deg, #fff3e0 0%, #fcb2ff 100%);
   color:#e700ef ;
   border-left: 8px solid #c015b2;
+
+}
+
+.theme-preference{
+  background: linear-gradient(135deg, #fff3e0 0%, #ffb2b2 100%);
+  color:#ef0000 ;
+  border-left: 8px solid #c01515;
 
 }
 
