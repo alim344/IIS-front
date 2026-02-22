@@ -371,7 +371,6 @@ export default {
         preferredStartTime: '',
         preferredEndTime: ''
       },
-      // NOVO: Progress podaci
       progress: {
         theory: {
           attended: 0,
@@ -391,7 +390,6 @@ export default {
 
   computed: {
     theoryProgress() {
-      // Koristi realne podatke iz progress objekta
       return Math.min((this.progress.theory.attended / this.progress.theory.total) * 100, 100);
     },
     practicalProgress() {
@@ -421,7 +419,7 @@ export default {
         await Promise.all([
           this.fetchMyProfile(),
           this.fetchPreferences(),
-          this.fetchProgress() // NOVO: Učitaj progres
+          this.fetchProgress()
         ]);
       } catch (error) {
         console.error("Error fetching data:", error);

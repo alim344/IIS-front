@@ -69,6 +69,13 @@
           >
             {{ exam.examDate ? '✏ Change Date' : '+ Set Date' }}
           </button>
+          <button
+            v-if="exam.status === 'SCHEDULED' && examDatePassed(exam.examDate)"
+            class="results-btn"
+            @click.stop="openResults(exam)"
+          >
+            📝 Enter Results
+          </button>
         </div>
       </div>
     </div>
@@ -116,6 +123,13 @@
         >
           {{ selectedExam.examDate ? '✏ Change Exam Date' : '+ Set Exam Date' }}
         </button>
+        <button
+          v-if="selectedExam.status === 'SCHEDULED' && examDatePassed(selectedExam.examDate)"
+          class="results-btn-modal"
+          @click="openResults(selectedExam)"
+        >
+          📝 Enter Exam Results
+        </button>
       </div>
     </div>
 
@@ -125,7 +139,7 @@
         <button class="modal-close" @click="setDateModal = false">✕</button>
         <h2 class="modal-title">Set Exam Date</h2>
         <p class="modal-desc">For exam request <strong>#{{ dateTargetExam?.id }}</strong> with <strong>{{ dateTargetExam?.totalCandidates }}</strong> candidates.</p>
-        <p class="modal-desc">All candidates will be notified once the date is set.</p>
+        <p class="modal-desc">All candidates will be notified by email once the date is set.</p>
 
         <div class="date-input-wrap">
           <label class="date-label-txt">Select Date</label>
@@ -145,6 +159,70 @@
       </div>
     </div>
   </div>
+
+  <!-- RESULTS MODAL -->
+  <div v-if="resultsModal" class="modal-overlay" @click.self="resultsModal = false">
+    <div class="modal results-modal">
+      <button class="modal-close" @click="resultsModal = false">✕</button>
+      <h2 class="modal-title">📝 Exam Results — #{{ resultsTargetExam?.id }}</h2>
+      <p class="modal-desc">
+        Exam date: <strong>{{ formatDateSimple(resultsTargetExam?.examDate) }}</strong> ·
+        <strong>{{ resultsTargetExam?.totalCandidates }}</strong> candidates
+      </p>
+      <p class="modal-desc">Check all candidates who <strong>passed</strong> the exam. Others will remain in PENDING status.</p>
+
+      <div class="results-toolbar">
+        <button class="sel-btn" @click="selectAllPassed">✓ Select All</button>
+        <button class="sel-btn desel" @click="passedIds = []">✗ Deselect All</button>
+        <span class="passed-count">{{ passedIds.length }} / {{ resultsTargetExam?.candidates?.length }} passed</span>
+      </div>
+
+      <div class="results-list">
+        <div
+          v-for="c in resultsTargetExam?.candidates"
+          :key="c.id"
+          class="result-row"
+          :class="{ passed: passedIds.includes(c.id), failed: !passedIds.includes(c.id) }"
+          @click="togglePassed(c.id)"
+        >
+          <div class="result-check" :class="{ checked: passedIds.includes(c.id) }">
+            <span v-if="passedIds.includes(c.id)">✓</span>
+          </div>
+          <div class="result-info">
+            <span class="result-name">{{ c.name }} {{ c.lastname }}</span>
+            <span class="result-cat">{{ c.category }}</span>
+          </div>
+          <span class="result-status-label" :class="passedIds.includes(c.id) ? 'label-pass' : 'label-fail'">
+            {{ passedIds.includes(c.id) ? 'PASSED → PRACTICAL' : 'FAILED → PENDING' }}
+          </span>
+        </div>
+      </div>
+
+      <div class="results-summary">
+        <div class="summary-item pass">
+          <span class="summary-num">{{ passedIds.length }}</span>
+          <span class="summary-lbl">Passed</span>
+        </div>
+        <div class="summary-divider">|</div>
+        <div class="summary-item fail">
+          <span class="summary-num">{{ (resultsTargetExam?.candidates?.length || 0) - passedIds.length }}</span>
+          <span class="summary-lbl">Failed / Pending</span>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="cancel-modal-btn" @click="resultsModal = false">Cancel</button>
+        <button class="submit-results-btn" @click="submitResults" :disabled="submittingResults">
+          <span v-if="submittingResults" class="spinner"></span>
+          <span v-else>Submit Results</span>
+        </button>
+      </div>
+
+      <div v-if="resultsSuccess" class="success-msg">✓ {{ resultsSuccess }}</div>
+      <div v-if="resultsError" class="error-msg">⚠ {{ resultsError }}</div>
+    </div>
+  </div>
+
 </template>
 
 <script>
@@ -170,6 +248,14 @@ export default {
       settingDate: false,
       dateSuccess: null,
       dateError: null,
+
+      // Results
+      resultsModal: false,
+      resultsTargetExam: null,
+      passedIds: [],
+      submittingResults: false,
+      resultsSuccess: null,
+      resultsError: null,
     };
   },
 
@@ -226,7 +312,7 @@ export default {
           { examDate: this.selectedDate },
           { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
         );
-        this.dateSuccess = 'Date set successfully! Candidates have been notified.';
+        this.dateSuccess = 'Date set successfully! Candidates have been notified by email.';
         await this.fetchExams();
         setTimeout(() => { this.setDateModal = false; }, 2000);
       } catch (e) {
@@ -253,6 +339,52 @@ export default {
     formatDateSimple(d) {
       if (!d) return '—';
       return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+    },
+
+    examDatePassed(examDate) {
+      if (!examDate) return false;
+      return new Date(examDate) < new Date();
+    },
+
+    openResults(exam) {
+      this.resultsTargetExam = exam;
+      this.passedIds = [];
+      this.resultsSuccess = null;
+      this.resultsError = null;
+      this.resultsModal = true;
+      this.selectedExam = null;
+    },
+
+    togglePassed(id) {
+      if (this.passedIds.includes(id)) {
+        this.passedIds = this.passedIds.filter(i => i !== id);
+      } else {
+        this.passedIds.push(id);
+      }
+    },
+
+    selectAllPassed() {
+      this.passedIds = this.resultsTargetExam.candidates.map(c => c.id);
+    },
+
+    async submitResults() {
+      this.submittingResults = true;
+      this.resultsSuccess = null;
+      this.resultsError = null;
+      try {
+        const res = await axios.post(
+          `http://localhost:8080/professor/theory-exam/${this.resultsTargetExam.id}/results`,
+          { passedCandidateIds: this.passedIds },
+          { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+        );
+        this.resultsSuccess = res.data.message;
+        await this.fetchExams();
+        setTimeout(() => { this.resultsModal = false; }, 2200);
+      } catch (e) {
+        this.resultsError = e.response?.data?.message || e.response?.data || 'Error submitting results.';
+      } finally {
+        this.submittingResults = false;
+      }
     }
   }
 };
@@ -507,4 +639,98 @@ export default {
   background: #fdecea; border: 2px solid #f44336;
   border-radius: 8px; color: #c62828; font-weight: 600; font-size: 0.9rem;
 }
+
+/* RESULTS */
+.results-btn {
+  padding: 7px 18px;
+  background: linear-gradient(135deg, #43a047, #2e7d32);
+  color: white; border: none; border-radius: 8px;
+  font-size: 0.82rem; font-weight: 700; cursor: pointer;
+  transition: all 0.2s; white-space: nowrap;
+}
+.results-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(46,125,50,0.3); }
+
+.results-btn-modal {
+  width: 100%; padding: 12px; margin-top: 10px;
+  background: linear-gradient(135deg, #43a047, #2e7d32);
+  color: white; border: none; border-radius: 10px;
+  font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.3s;
+}
+.results-btn-modal:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(46,125,50,0.4); }
+
+.results-modal { width: 620px; }
+
+.results-toolbar {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 14px; flex-wrap: wrap;
+}
+.sel-btn {
+  padding: 6px 14px; border: 2px solid #4CAF50; background: white;
+  color: #2e7d32; border-radius: 8px; font-size: 0.82rem;
+  font-weight: 600; cursor: pointer; transition: all 0.2s;
+}
+.sel-btn:hover { background: #e8f5e9; }
+.sel-btn.desel { border-color: #ccc; color: #888; }
+.sel-btn.desel:hover { background: #f0f0f0; color: #444; }
+.passed-count { margin-left: auto; font-weight: 700; font-size: 0.88rem; color: #4f364b; }
+
+.results-list {
+  display: flex; flex-direction: column; gap: 6px;
+  max-height: 300px; overflow-y: auto; margin-bottom: 18px;
+}
+
+.result-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px; border-radius: 10px;
+  border: 2px solid #e9e1f5; cursor: pointer;
+  transition: all 0.2s; background: #fafafa;
+}
+.result-row:hover { border-color: #4CAF50; }
+.result-row.passed { background: #e8f5e9; border-color: #4CAF50; }
+.result-row.failed { background: #fff8f8; border-color: #ffcdd2; }
+
+.result-check {
+  width: 22px; height: 22px; border: 2px solid #ccc; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.85rem; font-weight: 800; color: white;
+  flex-shrink: 0; transition: all 0.2s;
+}
+.result-check.checked { background: #4CAF50; border-color: #4CAF50; }
+
+.result-info { display: flex; align-items: center; gap: 10px; flex: 1; }
+.result-name { font-weight: 700; color: #4f364b; font-size: 0.9rem; }
+.result-cat {
+  background: #be8fe9; color: white;
+  font-size: 0.68rem; font-weight: 700;
+  padding: 1px 7px; border-radius: 8px;
+}
+
+.result-status-label {
+  font-size: 0.72rem; font-weight: 700;
+  padding: 3px 8px; border-radius: 8px; white-space: nowrap;
+}
+.label-pass { background: #e8f5e9; color: #2e7d32; }
+.label-fail { background: #fdecea; color: #c62828; }
+
+.results-summary {
+  display: flex; align-items: center; justify-content: center;
+  gap: 20px; padding: 16px; background: #f9f5fd;
+  border-radius: 12px; margin-bottom: 18px;
+}
+.summary-item { display: flex; flex-direction: column; align-items: center; }
+.summary-num { font-size: 2rem; font-weight: 800; line-height: 1; }
+.summary-lbl { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+.summary-item.pass .summary-num { color: #2e7d32; }
+.summary-item.fail .summary-num { color: #c62828; }
+.summary-divider { font-size: 1.5rem; color: #ccc; }
+
+.submit-results-btn {
+  padding: 10px 28px;
+  background: linear-gradient(135deg, #43a047, #2e7d32);
+  color: white; border: none; border-radius: 8px;
+  font-size: 0.95rem; font-weight: 700; cursor: pointer;
+  transition: all 0.3s; display: flex; align-items: center; gap: 8px;
+}
+.submit-results-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.submit-results-btn:hover:not(:disabled) { transform: translateY(-1px); }
 </style>
