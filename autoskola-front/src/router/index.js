@@ -37,11 +37,8 @@ const routes = [
   {path:'/candidateHome', component: CandidateHomeView},
   {path:'/instructorHome', component:InstructorHomeView},
   {path:'/professorHome', component:ProfessorHomeView},
-  { path: '/adminHome/theory-schedule', component: AdminGenerateSchedule},
-  { path: '/theory-exams', component: AdminTheoryExam },
   { path: '/professorHome/theory-exam', component: ProfessorTheoryExam },
   { path: '/analytics', component: AnalyticsDashboard},
-  {path: '/manual-theory-class', component: ManualTheoryClass},
 
   {path: '/adminHome',
     component: AdminHomeView,
@@ -64,6 +61,10 @@ const routes = [
 
       { path: 'profile', component: AdminProfileComponent },
       { path: 'analytics', component: AnalyticsDashboard },
+      
+      { path: 'theory-schedule', component: AdminGenerateSchedule},
+      { path: 'theory-exams', component: AdminTheoryExam },
+      {path: 'manual-theory-class', component: ManualTheoryClass},
 
     ]},
 

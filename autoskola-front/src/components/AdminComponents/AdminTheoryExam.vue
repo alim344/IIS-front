@@ -1,9 +1,6 @@
 <template>
   <div class="exam-section">
-    <div class="top-bar">
-      <button class="back-btn" @click="$router.push('/adminHome')">← Back to Home</button>
-      <h1 class="page-title">Theory Exam Management</h1>
-    </div>
+    <h1 class="page-title">Theory Exam Management</h1>
 
     <!-- STATS -->
     <div class="stats-row">
@@ -397,34 +394,6 @@ export default {
   margin: 0 auto;
 }
 
-.top-bar {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  margin-bottom: 30px;
-}
-
-.top-bar .page-title {
-  margin-bottom: 0;
-  flex: 1;
-}
-
-.back-btn {
-  padding: 8px 18px;
-  border: 2px solid #e9e1f5;
-  background: white;
-  color: #4f364b;
-  border-radius: 8px;
-  font-size: 0.88rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-.back-btn:hover {
-  background: #f5f0f9;
-  border-color: #be8fe9;
-}
 
 .page-title {
   text-align: center;
