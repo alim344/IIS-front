@@ -15,7 +15,6 @@
       </button>
     </div>
 
-    <!-- ==================== AUTO GENERATE ==================== -->
     <div v-if="mode === 'generate'">
       <div class="info-card">
         <div class="info-icon">⚡</div>
@@ -55,7 +54,6 @@
       <div v-if="error" class="error-card">⚠ {{ error }}</div>
     </div>
 
-    <!-- ==================== MANUAL CREATE ==================== -->
     <div v-if="mode === 'manual'">
       <div class="info-card">
         <div class="info-icon">✏️</div>
@@ -67,7 +65,6 @@
 
       <div class="manual-form">
 
-        <!-- STEP 1: DATE & SLOT -->
         <div class="form-section">
           <div class="form-section-title">
             <span class="step-badge">1</span> Date & Time Slot
@@ -96,7 +93,6 @@
           </div>
         </div>
 
-        <!-- STEP 2: PROFESSOR & LESSON -->
         <div class="form-section">
           <div class="form-section-title">
             <span class="step-badge">2</span> Professor & Lesson
@@ -123,7 +119,6 @@
           </div>
         </div>
 
-        <!-- STEP 3: CANDIDATES -->
         <div class="form-section">
           <div class="form-section-title">
             <span class="step-badge">3</span> Candidates
@@ -182,7 +177,6 @@
           </div>
         </div>
 
-        <!-- SUMMARY & SUBMIT -->
         <div class="form-section submit-section">
           <div class="summary-box" v-if="manual.date && manual.slot && manual.professorId && manual.lessonId">
             <div class="summary-row">
@@ -226,7 +220,6 @@
       </div>
     </div>
 
-    <!-- ==================== VIEW SCHEDULE ==================== -->
     <div v-if="mode === 'view'">
       <div class="week-selector">
         <button class="week-btn" :class="{active: weekView === 'this'}" @click="weekView = 'this'; fetchSchedule()">This Week</button>
@@ -275,7 +268,6 @@
       </div>
     </div>
 
-    <!-- CLASS DETAIL MODAL -->
     <div v-if="selectedClass" class="modal-overlay" @click.self="selectedClass = null">
       <div class="modal">
         <button class="modal-close" @click="selectedClass = null">✕</button>
@@ -321,17 +313,14 @@ export default {
       mode: "generate",
       weekView: "next",
 
-      // Auto generate
       loading: false,
       result: null,
       error: null,
 
-      // View schedule
       loadingSchedule: false,
       schedule: [],
       selectedClass: null,
 
-      // Manual create
       manual: {
         date: "",
         slot: "",
@@ -382,7 +371,6 @@ export default {
   },
 
   methods: {
-    // ===== AUTO GENERATE =====
     async generate() {
       this.loading = true;
       this.result = null;
@@ -396,8 +384,6 @@ export default {
         this.loading = false;
       }
     },
-
-    // ===== VIEW SCHEDULE =====
     async fetchSchedule() {
       this.loadingSchedule = true;
       this.schedule = [];
@@ -428,7 +414,6 @@ export default {
       }
     },
 
-    // ===== MANUAL CREATE =====
     async initManual() {
       this.fetchProfessors();
       this.fetchLessons();
@@ -437,8 +422,7 @@ export default {
     async fetchProfessors() {
       this.loadingProfessors = true;
       try {
-        // Koristi bilo koji endpoint koji vraća profesore
-        const res = await axios.get(`${API}/professor`, { headers: headers() });
+        const res = await axios.get(`${API}/professors/all`, { headers: headers() });
         this.professors = res.data;
       } catch (e) {
         console.error("Error loading professors:", e);
@@ -448,26 +432,15 @@ export default {
     },
 
     async fetchLessons() {
-      this.loadingLessons = true;
-      try {
-        // Dohvati listu lekcija iz bilo kog rasporeda ili dedicated endpointa
-        const res = await axios.get(`${API}/theoryclass/fullschedule`, { headers: headers() });
-        // Izvuci unique lekcije
-        const seen = new Set();
-        const uniqueLessons = [];
-        for (const cls of res.data) {
-          if (cls.theoryLesson && !seen.has(cls.theoryLesson.id)) {
-            seen.add(cls.theoryLesson.id);
-            uniqueLessons.push(cls.theoryLesson);
-          }
-        }
-        // Sortiraj po orderNumber
-        this.lessons = uniqueLessons.sort((a, b) => a.orderNumber - b.orderNumber);
-      } catch (e) {
-        console.error("Error loading lessons:", e);
-      } finally {
-        this.loadingLessons = false;
-      }
+  this.loadingLessons = true;
+  try {
+    const res = await axios.get(`${API}/theoryclass/theory-lessons`, { headers: headers() });
+    this.lessons = res.data;
+  } catch (e) {
+    console.error("Error loading lessons:", e);
+  } finally {
+    this.loadingLessons = false;
+  }
     },
 
     async onSlotOrDateChange() {
@@ -528,7 +501,6 @@ export default {
       this.candidateSearch = "";
     },
 
-    // ===== HELPERS =====
     slotTime(slot) {
       const map = { MORNING: "08:00", AFTERNOON: "14:00", EVENING: "18:00" };
       return map[slot] || slot;
@@ -580,7 +552,6 @@ export default {
   color: #4f364b;
 }
 
-/* MODE TABS */
 .mode-tabs {
   display: flex;
   gap: 0;
@@ -604,7 +575,6 @@ export default {
 
 .mode-tab.active { background: #be8fe9; color: white; }
 
-/* INFO CARD */
 .info-card {
   display: flex;
   align-items: flex-start;
@@ -619,7 +589,6 @@ export default {
 .info-text h3 { margin: 0 0 8px; color: #4f364b; font-size: 1.2rem; }
 .info-text p { margin: 0; color: #6e5570; line-height: 1.6; }
 
-/* AUTO GENERATE */
 .action-row {
   display: flex;
   gap: 16px;
@@ -681,7 +650,6 @@ export default {
 }
 .view-btn:hover { background: #388e3c; transform: translateX(4px); }
 
-/* MANUAL FORM */
 .manual-form { display: flex; flex-direction: column; gap: 0; }
 
 .form-section {
@@ -746,7 +714,6 @@ export default {
 }
 .form-input:focus { border-color: #be8fe9; }
 
-/* SLOT SELECTOR */
 .slot-selector { display: flex; gap: 10px; flex-wrap: wrap; }
 
 .slot-btn {
@@ -765,7 +732,6 @@ export default {
 .slot-label { font-size: 0.88rem; font-weight: 700; color: #4f364b; }
 .slot-time { font-size: 0.75rem; color: #888; margin-top: 2px; }
 
-/* CANDIDATES */
 .slot-hint-box {
   padding: 20px; text-align: center;
   background: #faf5ff; border-radius: 10px;
@@ -805,7 +771,6 @@ export default {
 }
 .sel-count.over-limit { color: #f44336; background: #fdecea; }
 
-/* CANDIDATES GRID */
 .candidates-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -852,7 +817,6 @@ export default {
 .tile-nopref { font-size: 0.72rem; color: #bbb; font-style: italic; }
 .tile-lessons { font-size: 0.72rem; color: #aaa; margin-top: 2px; }
 
-/* SUBMIT SECTION */
 .submit-section { background: #faf5ff; }
 
 .summary-box {
@@ -917,7 +881,6 @@ export default {
   border-radius: 10px; color: #c62828; font-weight: 600;
 }
 
-/* VIEW SCHEDULE */
 .week-selector {
   display: flex; gap: 0; margin-bottom: 25px;
   border-radius: 10px; overflow: hidden;
@@ -958,13 +921,11 @@ export default {
 .progress-bar { height: 4px; background: #e9e1f5; border-radius: 2px; overflow: hidden; }
 .progress-fill { height: 100%; background: linear-gradient(90deg, #be8fe9, #9C27B0); border-radius: 2px; transition: width 0.5s ease; }
 
-/* SHARED */
 .empty-state { text-align: center; padding: 60px; color: #888; }
 .empty-state.small { padding: 30px; }
 .empty-icon { font-size: 3rem; margin-bottom: 15px; }
 .loading-text { text-align: center; color: #888; padding: 40px; font-size: 1.1rem; }
 
-/* MODAL */
 .modal-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.5);
   z-index: 100; display: flex; align-items: center; justify-content: center;
