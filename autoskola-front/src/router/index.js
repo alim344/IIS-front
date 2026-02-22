@@ -26,6 +26,7 @@ import AdminNotificationComponent from "@/components/AdminComponents/AdminNotifi
 import AdminGenerateSchedule from "@/components/AdminComponents/TheorySchedule.vue";
 import AdminTheoryExam from "@/components/AdminComponents/AdminTheoryExam.vue";
 import ProfessorTheoryExam from "@/components/ProfessorComponents/ProfessorTheoryExam.vue";
+import AnalyticsDashboard from '@/components/AnalyticsDashboard.vue';
 
 
 const routes = [
@@ -38,6 +39,7 @@ const routes = [
   { path: '/adminHome/theory-schedule', component: AdminGenerateSchedule},
   { path: '/theory-exams', component: AdminTheoryExam },
   { path: '/professorHome/theory-exam', component: ProfessorTheoryExam },
+  { path: '/analytics', component: AnalyticsDashboard},
 
   {path: '/adminHome',
     component: AdminHomeView,
@@ -59,6 +61,7 @@ const routes = [
       { path : 'notifications', component: AdminNotificationComponent },
 
       { path: 'profile', component: AdminProfileComponent },
+      { path: 'analytics', component: AnalyticsDashboard },
 
     ]},
 

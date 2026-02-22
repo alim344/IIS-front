@@ -46,9 +46,10 @@ export default {
         { id: 4, text: 'Vehicles', path: '/adminHome/vehicles' },
         { id: 5, text: 'Assignments', path: '/adminHome/assignments'},
         { id: 6, text: 'Notifications', path: '/adminHome/notifications' },
-        { id: 6, text: 'Profile', path: '/adminHome/profile' },
-        { id: 7, text: 'Theory Schedule', path: '/adminHome/theory-schedule' },
-        { id: 8, text: 'Theory Exams', path: '/theory-exams' }
+        { id: 7, text: 'Profile', path: '/adminHome/profile' },
+        { id: 8, text: 'Theory Schedule', path: '/adminHome/theory-schedule' },
+        { id: 9, text: 'Theory Exams', path: '/theory-exams' },
+        { id: 10, text: 'Analytics', path: '/adminHome/analytics' },
       ]
     };
   },
