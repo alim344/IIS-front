@@ -45,7 +45,6 @@
 <script>
 import axios from 'axios';
 import HomeScheduleComponent from '@/components/InstructorComponents/HomeScheduleComponent.vue';
-import ClassTrackingComponent from '@/components/InstructorComponents/ClassTrackingComponent.vue';
 import InstructorTrendsComponent from '@/components/InstructorComponents/InstructorTrendsComponent.vue';
 import InstructorProfileComponent from '@/components/InstructorComponents/InstructorProfileComponent.vue';
 import MakeScheduleComponent from '@/components/InstructorComponents/MakeScheduleComponent.vue';
@@ -57,7 +56,7 @@ export default {
     
     components: {
         HomeScheduleComponent,
-        ClassTrackingComponent,
+        
         InstructorTrendsComponent,
         InstructorProfileComponent,
         MakeScheduleComponent,
@@ -72,11 +71,10 @@ export default {
             tabs: [
                 { id: 1, text: 'Schedule', component: 'HomeScheduleComponent' },
                 { id: 2, text: 'Handle Schedule', component: 'MakeScheduleComponent' },
-                { id: 3, text: 'Class Tracking', component: 'ClassTrackingComponent' },
-                { id: 4, text: 'Trends', component: 'InstructorTrendsComponent'},
-                { id: 5, text: 'Profile', component: 'InstructorProfileComponent' },
-                { id: 6, text: 'Vehicle', component: InstructorVehicleComponent},
-                { id: 7, text: 'Analytics', component: AnalyticsDashboard },
+                { id: 3, text: 'Exam Analytics', component: 'InstructorTrendsComponent'},
+                { id: 4, text: 'Profile', component: 'InstructorProfileComponent' },
+                { id: 5, text: 'Vehicle', component: InstructorVehicleComponent},
+                { id: 6, text: 'Analytics', component: AnalyticsDashboard },
             ]
         };
     },
