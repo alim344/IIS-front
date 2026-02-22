@@ -50,6 +50,7 @@ export default {
         { id: 8, text: 'Theory Schedule', path: '/adminHome/theory-schedule' },
         { id: 9, text: 'Theory Exams', path: '/adminHome/theory-exams' },
         { id: 10, text: 'Analytics', path: '/adminHome/analytics' },
+        { id: 11, text: 'Practical Exam', path: '/adminHome/practical-exam'}
       ]
     };
   },
