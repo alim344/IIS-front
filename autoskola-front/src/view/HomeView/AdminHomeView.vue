@@ -48,7 +48,7 @@ export default {
         { id: 6, text: 'Notifications', path: '/adminHome/notifications' },
         { id: 7, text: 'Profile', path: '/adminHome/profile' },
         { id: 8, text: 'Theory Schedule', path: '/adminHome/theory-schedule' },
-        { id: 9, text: 'Theory Exams', path: '/theory-exams' },
+        { id: 9, text: 'Theory Exams', path: '/adminHome/theory-exams' },
         { id: 10, text: 'Analytics', path: '/adminHome/analytics' },
       ]
     };
