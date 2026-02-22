@@ -173,7 +173,7 @@ export default {
   background: linear-gradient(135deg, #fff3e0 0%, #ffb2b2 100%);
   color:#ef0000 ;
   border-left: 8px solid #c01515;
-
+ 
 }
 
 .theme-default {
