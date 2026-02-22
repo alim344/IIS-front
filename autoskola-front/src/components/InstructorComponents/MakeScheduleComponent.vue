@@ -971,6 +971,10 @@ export default {
       return;
     }
 
+    if(this.selectedCandidate.size > 12){
+      alert('You have picked more candidates then you can take a week. 12 max');
+    }
+
     if (this.selectedLightDays.length > 2) {
         alert("You can only pick two days");
         return; 
@@ -999,7 +1003,7 @@ export default {
           }));
         }).catch(err => {
        
-          alert("Error has happened!!"+err);
+          alert("Error has happened!! You have classes next week maybe"+err);
           
       });
     
