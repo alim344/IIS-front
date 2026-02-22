@@ -43,16 +43,17 @@
 <script>
 import ScheduleComponent from '@/components/ProfessorComponents/ScheduleComponent.vue';
 import FullTheorySchedule from '@/components/ProfessorComponents/FullTheorySchedule.vue';
+import TheoryExamRequest from '@/components/ProfessorComponents/ProfessorTheoryExam.vue';
 
 export default {
-  components:{ScheduleComponent, FullTheorySchedule},
+  components:{ScheduleComponent, FullTheorySchedule, TheoryExamRequest},
    data() {
         return {
             activeComponent: 'ScheduleComponent',
             tabs: [
                 { id: 1, text: 'My Schedule', component: 'ScheduleComponent' },
                 { id: 2, text: 'Full Schedule', component: 'FullTheorySchedule' },
-               
+                { id: 3, text: 'Theory Exam Request', component: 'TheoryExamRequest'},
             ]
         };
     },

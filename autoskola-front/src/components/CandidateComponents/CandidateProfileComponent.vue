@@ -437,9 +437,17 @@ export default {
             Authorization: "Bearer " + localStorage.getItem("token")
           }
         });
-        this.candidate = response.data;
+        const backendData = response.data;
+        this.candidate = {
+          firstName: backendData.name,       
+          lastName: backendData.lastname,    
+          email: backendData.email,
+          username: backendData.username,      
+          category: backendData.category,
+          status: backendData.status,
+          instructor: backendData.instructor
+        };
         
-        // Populate edit form
         this.editForm = {
           firstName: this.candidate.firstName,
           lastName: this.candidate.lastName,

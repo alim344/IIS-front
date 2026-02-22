@@ -24,6 +24,9 @@ import InstructorVehicleComponent from "@/components/InstructorComponents/Instru
 import AdminAssignments from "@/components/AdminComponents/AdminAssignmentsComponent.vue";
 import AdminNotificationComponent from "@/components/AdminComponents/AdminNotificationComponent.vue";
 import AdminGenerateSchedule from "@/components/AdminComponents/TheorySchedule.vue";
+import AdminTheoryExam from "@/components/AdminComponents/AdminTheoryExam.vue";
+import ProfessorTheoryExam from "@/components/ProfessorComponents/ProfessorTheoryExam.vue";
+
 
 const routes = [
   { path: '/', component: HomeView },
@@ -33,6 +36,8 @@ const routes = [
   {path:'/instructorHome', component:InstructorHomeView},
   {path:'/professorHome', component:ProfessorHomeView},
   { path: '/adminHome/theory-schedule', component: AdminGenerateSchedule},
+  { path: '/theory-exams', component: AdminTheoryExam },
+  { path: '/professorHome/theory-exam', component: ProfessorTheoryExam },
 
   {path: '/adminHome',
     component: AdminHomeView,
