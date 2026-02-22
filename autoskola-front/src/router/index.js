@@ -27,6 +27,7 @@ import AdminGenerateSchedule from "@/components/AdminComponents/TheorySchedule.v
 import AdminTheoryExam from "@/components/AdminComponents/AdminTheoryExam.vue";
 import ProfessorTheoryExam from "@/components/ProfessorComponents/ProfessorTheoryExam.vue";
 import AnalyticsDashboard from '@/components/AnalyticsDashboard.vue';
+import ManualTheoryClass from '@/components/AdminComponents/ManualTheoryClass.vue';'@/components/AdminComponents/ManualTheoryClass.vue';
 
 
 const routes = [
@@ -40,6 +41,7 @@ const routes = [
   { path: '/theory-exams', component: AdminTheoryExam },
   { path: '/professorHome/theory-exam', component: ProfessorTheoryExam },
   { path: '/analytics', component: AnalyticsDashboard},
+  {path: '/manual-theory-class', component: ManualTheoryClass},
 
   {path: '/adminHome',
     component: AdminHomeView,

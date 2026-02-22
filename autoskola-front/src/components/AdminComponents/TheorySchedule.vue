@@ -34,6 +34,10 @@
           <span v-if="loading" class="spinner"></span>
           <span v-else>Generate Schedule</span>
         </button>
+
+        <button class="manual-btn" @click="goToManualCreate">
+          ✏️ Create Manually
+        </button>
       </div>
 
       <!-- RESULT AFTER GENERATION -->
@@ -202,6 +206,9 @@ export default {
       } finally {
         this.loading = false;
       }
+    },
+    goToManualCreate() {
+      this.$router.push('/manual-theory-class');
     },
 
     async fetchSchedule() {
@@ -784,5 +791,25 @@ export default {
 
 .delete-btn:active {
   transform: translateY(0);
+}
+.manual-btn {
+  padding: 14px 40px;
+  background: linear-gradient(135deg, #596aa1, #7b9bc8);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 4px 15px rgba(74, 78, 153, 0.3);
+}
+
+.manual-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(143, 153, 243, 0.4);
 }
 </style>
