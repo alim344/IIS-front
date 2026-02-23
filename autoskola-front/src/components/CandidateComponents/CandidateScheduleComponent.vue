@@ -58,6 +58,11 @@
               <span class="detail-label">Location:</span>
               <span class="detail-value">{{ selectedEvent.preferredLocation }}</span>
             </div>
+
+            <div class="detail-row" v-if="selectedEvent.note">
+              <span class="detail-label">📝 Note:</span>
+              <span class="detail-value note-value">{{ selectedEvent.note }}</span>
+            </div>
             
             <div class="detail-row">
               <span class="detail-label">Status:</span>
@@ -831,5 +836,16 @@ export default {
   color: #888888;
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+.note-value {
+  background: #f9f5fd;
+  border-left: 3px solid #be8fe9;
+  padding: 8px 12px;
+  border-radius: 0 8px 8px 0;
+  color: #4f364b;
+  font-style: italic;
+  line-height: 1.5;
+  white-space: pre-wrap;
 }
 </style>
