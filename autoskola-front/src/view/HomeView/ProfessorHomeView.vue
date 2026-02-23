@@ -45,6 +45,7 @@ import ScheduleComponent from '@/components/ProfessorComponents/ScheduleComponen
 import FullTheorySchedule from '@/components/ProfessorComponents/FullTheorySchedule.vue';
 import TheoryExamRequest from '@/components/ProfessorComponents/ProfessorTheoryExam.vue';
 import AnalyticsDashboard from '@/components/AnalyticsDashboard.vue';
+import ProfessorNotificationComponent from "@/components/ProfessorComponents/ProfessorNotificationComponent.vue";
 
 export default {
   components:{ScheduleComponent, FullTheorySchedule, TheoryExamRequest, AnalyticsDashboard},
@@ -56,6 +57,7 @@ export default {
                 { id: 2, text: 'Full Schedule', component: 'FullTheorySchedule' },
                 { id: 3, text: 'Theory Exam Request', component: 'TheoryExamRequest'},
                 { id: 4, text: 'Analytics', component: AnalyticsDashboard },
+              { id: 5, text: 'Notifications', component: ProfessorNotificationComponent }
             ]
         };
     },

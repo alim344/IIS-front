@@ -29,6 +29,7 @@ import ProfessorTheoryExam from "@/components/ProfessorComponents/ProfessorTheor
 import AnalyticsDashboard from '@/components/AnalyticsDashboard.vue';
 import ManualTheoryClass from '@/components/AdminComponents/ManualTheoryClass.vue';'@/components/AdminComponents/ManualTheoryClass.vue';
 import PracticalExamComponent from "@/components/AdminComponents/PracticalExamComponent.vue";
+import ProfessorNotificationComponent from "@/components/ProfessorComponents/ProfessorNotificationComponent.vue";
 
 
 
@@ -41,6 +42,7 @@ const routes = [
   {path:'/professorHome', component:ProfessorHomeView},
   { path: '/professorHome/theory-exam', component: ProfessorTheoryExam },
   { path: '/analytics', component: AnalyticsDashboard},
+  { path:'/professorNotifications', component: ProfessorNotificationComponent},
 
   {path: '/adminHome',
     component: AdminHomeView,
