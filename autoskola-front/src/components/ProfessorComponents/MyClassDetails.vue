@@ -21,6 +21,10 @@
             <span class="detail-value">{{ formatTime(event) }}</span>
           </div>
           <div class="detail-row">
+            <span class="detail-label">Professor:</span>
+            <span class="detail-value">{{ event.professorName }}</span>
+          </div>
+          <div class="detail-row">
             <span class="detail-label">Enrolled:</span>
             <span class="detail-value">{{ event.enrolledStudents }} / {{ event.capacity }}</span>
           </div>
@@ -82,6 +86,8 @@
 </template>
 
 <script>
+import axios from 'axios';
+
 export default {
   props: {
     event: { type: Object, required: true }
@@ -131,23 +137,26 @@ export default {
       this.errorMsg = '';
       
       try {
-        // TODO: Zameni sa pravim API pozivom
-        // const response = await fetch(`/api/theory-classes/${this.event.id}/students`);
-        // this.students = await response.json();
+        const response = await axios.get(
+          `http://localhost:8080/theoryclass/class/${this.event.id}/students`,
+          {
+            headers: {
+              Authorization: 'Bearer ' + localStorage.getItem('token')
+            }
+          }
+        );
         
-        // Mock podaci za testiranje
-        setTimeout(() => {
-          this.students = [
-            { id: 1, name: 'Ana', lastname: 'Anic', category: 'B' },
-            { id: 2, name: 'Milan', lastname: 'Milanovic', category: 'B' },
-            { id: 3, name: 'Maja', lastname: 'Majic', category: 'B' },
-            { id: 4, name: 'Petar', lastname: 'Petrovic', category: 'A' },
-            { id: 5, name: 'Jovana', lastname: 'Jovanovic', category: 'B' }
-          ];
-          this.loadingStudents = false;
-        }, 500);
+        this.students = response.data.students || [];
+        
+        this.presentIds = this.students
+          .filter(s => s.attendedLessons && 
+                      s.attendedLessons.some(l => l.id === this.event.theoryLesson?.id))
+          .map(s => s.id);
+        
       } catch (error) {
-        this.errorMsg = 'Failed to load students';
+        console.error('Error loading students:', error);
+        this.errorMsg = error.response?.data || 'Failed to load students';
+      } finally {
         this.loadingStudents = false;
       }
     },
@@ -157,27 +166,31 @@ export default {
       this.errorMsg = '';
       
       try {
-        // TODO: Zameni sa pravim API pozivom
-        // const response = await fetch(`/api/theory-classes/${this.event.id}/attendance`, {
-        //   method: 'POST',
-        //   headers: { 'Content-Type': 'application/json' },
-        //   body: JSON.stringify({ presentIds: this.presentIds })
-        // });
+        await axios.post(
+          'http://localhost:8080/theoryclass/attendance',
+          {
+            classId: this.event.id,
+            presentCandidateIds: this.presentIds
+          },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: 'Bearer ' + localStorage.getItem('token')
+            }
+          }
+        );
         
-        // if (!response.ok) throw new Error('Submission failed');
+        this.successMsg = 'Attendance submitted successfully!';
         
-        // Mock uspešna prijava
         setTimeout(() => {
-          this.successMsg = 'Attendance submitted successfully!';
-          this.submitting = false;
-          
-          // Opciono: zatvori modal nakon 2 sekunde
-          setTimeout(() => {
-            this.$emit('close');
-          }, 2000);
-        }, 1000);
+          this.$emit('close');
+          this.$emit('attendance-submitted'); 
+        }, 1500);
+        
       } catch (error) {
-        this.errorMsg = error.message || 'Failed to submit attendance';
+        console.error('Error submitting attendance:', error);
+        this.errorMsg = error.response?.data || 'Failed to submit attendance';
+      } finally {
         this.submitting = false;
       }
     }
@@ -188,7 +201,7 @@ export default {
     }
   },
   watch: {
-    'event.startTime': function() {
+    'event.id': function() {
       if (this.classStarted) {
         this.loadStudents();
       }
