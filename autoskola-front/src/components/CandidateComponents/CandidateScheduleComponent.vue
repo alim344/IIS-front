@@ -67,8 +67,8 @@
             </div>
 
            <div class="modal-actions">
-            <button class="accept-btn" @click="acceptClass"  :disabled="selectedEvent.accepted">ACCEPT CLASS</button>
-            <button class="decline-btn" @click="declineClass">DECLINE CLASS</button>
+            <button class="accept-btn" @click="acceptClass"  :disabled="selectedEvent.accepted || isClassPassed(selectedEvent)">ACCEPT CLASS</button>
+            <button class="decline-btn" @click="declineClass" :disabled="isClassPassed(selectedEvent)">DECLINE CLASS</button>
           </div>
             
            
@@ -342,6 +342,11 @@ export default {
      
       return 'Pending';
     },
+    isClassPassed(event) {
+      const now = new Date();
+      const end = new Date(event.endTime);
+      return now > end;
+    },
     closeEventModal(){
       this.selectedEvent = null;
       this.showEventModal= false;
@@ -461,11 +466,11 @@ export default {
 }
 
 .event-button{
-  margin: 10px;
+  margin: 5px;
   padding: 5px;
   border-radius: 30px;
   border: 2px solid #e1dbe2;
-  font-size: 10px;
+  font-size: 9px;
 }
 
 .event-button:hover{

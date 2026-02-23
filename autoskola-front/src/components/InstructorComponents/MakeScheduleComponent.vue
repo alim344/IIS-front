@@ -971,7 +971,7 @@ export default {
       return;
     }
 
-    if(this.selectedCandidate.size > 12){
+    if(this.selectedCandidates.size > 12){
       alert('You have picked more candidates then you can take a week. 12 max');
     }
 
@@ -993,8 +993,14 @@ export default {
           {  lightDays : lightDays,
              emails :emails,}
 
+             const token = localStorage.getItem('token');
+             if(token== null)return;
 
-      axios.post('http://localhost:8080/practicalclass/schedule/alg', scheduleData)
+      axios.post('http://localhost:8080/practicalclass/schedule/alg', scheduleData,
+        {
+                headers: { Authorization: `Bearer ${token}` }
+            }
+      )
         .then(response=> { 
           this.draftEvents = response.data.map(e => ({
             ...e,
