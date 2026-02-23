@@ -36,13 +36,13 @@
 
           <button
               class="action-btn propose-btn"
-              @click="suggestBoth"
+              @click="suggestProfessor"
               :disabled="!isFormValid"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M19 13H13V19H11V13H5V11H11V5H13V11H19V13Z" fill="currentColor"/>
             </svg>
-            Suggest Professor & Instructor
+            Suggest Professor
           </button>
         </div>
       </div>
@@ -52,20 +52,21 @@
           <h2>Exam Schedule</h2>
         </div>
 
-        <div v-if="suggestedInstructorId" class="suggestion-card instructor-suggestion">
-          <div class="suggestion-header">
-            <span class="suggestion-icon">👨‍🏫</span>
-            <h3>Suggested Instructor</h3>
-            <span class="badge suggested">System Suggestion</span>
+        <!-- Informacija o instruktoru (samo za prikaz) -->
+        <div v-if="assignedInstructor" class="info-card">
+          <div class="info-header">
+            <span class="info-icon">👨‍🏫</span>
+            <h3>Assigned Instructor</h3>
           </div>
-          <div class="suggestion-content">
-            <div class="suggestion-name">{{ suggestedInstructorName }}</div>
-            <div class="suggestion-details" v-if="suggestedInstructorVehicle">
-              Vehicle: {{ suggestedInstructorVehicle }}
+          <div class="info-content">
+            <div class="info-name">{{ assignedInstructor.name }} {{ assignedInstructor.lastname }}</div>
+            <div class="info-details" v-if="assignedInstructor.vehicle">
+              Vehicle: {{ assignedInstructor.vehicle.registrationNumber }}
             </div>
           </div>
         </div>
 
+        <!-- Predlog za profesora -->
         <div v-if="suggestedProfessorId" class="suggestion-card professor-suggestion">
           <div class="suggestion-header">
             <span class="suggestion-icon">👨‍🎓</span>
@@ -134,12 +135,12 @@
           </div>
         </div>
 
-        <div v-if="suggestedProfessorId && suggestedInstructorId" class="action-buttons">
+        <div v-if="selectedProfessorId" class="action-buttons">
           <button class="action-btn cancel" @click="resetSelection">Cancel</button>
           <button
               class="action-btn save"
               @click="scheduleExam"
-              :disabled="!selectedProfessorId || scheduling"
+              :disabled="scheduling"
           >
             {{ scheduling ? 'Scheduling...' : 'Confirm Exam' }}
           </button>
@@ -166,9 +167,7 @@ export default {
       examDate: '',
       examTime: '',
 
-      suggestedInstructorId: null,
-      suggestedInstructorName: '',
-      suggestedInstructorVehicle: '',
+      assignedInstructor: null,
 
       professorsAvailability: [],
       suggestedProfessorId: null,
@@ -214,48 +213,44 @@ export default {
       }
     },
 
-    onCandidateChange() {
-      this.suggestedInstructorId = null;
-      this.suggestedProfessorId = null;
-      this.professorsAvailability = [];
+    async fetchCandidateInstructor() {
+      if (!this.selectedCandidateId) return;
+
+      try {
+        const response = await axios.get(`http://localhost:8080/candidates/${this.selectedCandidateId}/instructor`, {
+          headers: { Authorization: "Bearer " + localStorage.getItem("token") }
+        });
+        this.assignedInstructor = response.data;
+      } catch (error) {
+        console.error('Error fetching instructor:', error);
+        this.assignedInstructor = null;
+      }
     },
 
-    async suggestBoth() {
+    onCandidateChange() {
+      this.assignedInstructor = null;
+      this.suggestedProfessorId = null;
+      this.selectedProfessorId = null;
+      this.professorsAvailability = [];
+      this.fetchCandidateInstructor();
+    },
+
+    async suggestProfessor() {
       if (!this.selectedDateTime || !this.selectedCandidateId) return;
 
       this.suggestionError = null;
       this.suggestedProfessorId = null;
-      this.suggestedInstructorId = null;
 
       try {
-        console.log('Sending request to:', `http://localhost:8080/practical-exam/suggest-both?dateTime=${this.selectedDateTime}&candidateId=${this.selectedCandidateId}`);
-
-        const response = await axios.get('http://localhost:8080/practical-exam/suggest-both', {
-          params: {
-            dateTime: this.selectedDateTime,
-            candidateId: this.selectedCandidateId
-          },
+        const response = await axios.get('http://localhost:8080/practical-exam/suggest-professor', {
+          params: { dateTime: this.selectedDateTime },
           headers: { Authorization: "Bearer " + localStorage.getItem("token") }
         });
 
-        console.log('SUCCESS! Response status:', response.status);
-        console.log('Response data:', response.data);
-
-        console.log('RESPONSE DATA:', response.data);
-
-        if (response.data.instructor) {
-          const instructor = response.data.instructor;
-          this.suggestedInstructorId = instructor.id;
-          this.suggestedInstructorName = `${instructor.name} ${instructor.lastname}`.trim();
-          this.suggestedInstructorVehicle = instructor.vehicle?.registrationNumber || 'No vehicle';
-        }
-
-        if (response.data.professor) {
-          const professor = response.data.professor;
-          this.suggestedProfessorId = professor.id;
-          this.suggestedProfessorName = `${professor.name} ${professor.lastname}`.trim();
-          this.selectedProfessorId = professor.id;
-        }
+        const professor = response.data;
+        this.suggestedProfessorId = professor.id;
+        this.suggestedProfessorName = `${professor.name} ${professor.lastname}`.trim();
+        this.selectedProfessorId = professor.id;
 
         const availabilityResponse = await axios.get('http://localhost:8080/practical-exam/professors-availability', {
           params: { dateTime: this.selectedDateTime },
@@ -264,23 +259,19 @@ export default {
 
         this.professorsAvailability = availabilityResponse.data;
 
-        if (this.suggestedProfessorId) {
-          const suggestedProf = this.professorsAvailability.find(p => p.professorId === this.suggestedProfessorId);
-          if (suggestedProf) {
-            this.suggestedProfessorWorkload = suggestedProf.workloadPercentage;
-          }
+        const suggestedProf = this.professorsAvailability.find(p => p.professorId === professor.id);
+        if (suggestedProf) {
+          this.suggestedProfessorWorkload = suggestedProf.workloadPercentage;
         }
 
       } catch (error) {
-        console.error('Error suggesting. Status:', error.response?.status);
-        console.error('Error data:', error.response?.data);
-        console.error('Full error:', error);
+        console.error('Error suggesting professor:', error);
         this.suggestionError = error.response?.data || 'No professors available at this time';
       }
     },
 
     async scheduleExam() {
-      if (!this.selectedDateTime || !this.selectedProfessorId || !this.suggestedInstructorId) return;
+      if (!this.selectedDateTime || !this.selectedProfessorId || !this.selectedCandidateId) return;
 
       this.scheduling = true;
 
@@ -288,7 +279,6 @@ export default {
         const requestData = {
           dateTime: this.selectedDateTime,
           candidateId: parseInt(this.selectedCandidateId),
-          instructorId: parseInt(this.suggestedInstructorId), // Koristi predloženog instruktora
           suggestedProfessorId: parseInt(this.selectedProfessorId),
           confirmSchedule: true
         };
@@ -314,10 +304,10 @@ export default {
       this.selectedCandidateId = '';
       this.examDate = '';
       this.examTime = '';
-      this.suggestedInstructorId = null;
+      this.assignedInstructor = null;
       this.suggestedProfessorId = null;
-      this.professorsAvailability = [];
       this.selectedProfessorId = null;
+      this.professorsAvailability = [];
       this.suggestionError = null;
     },
 
@@ -331,6 +321,7 @@ export default {
 </script>
 
 <style scoped>
+/* Svi stilovi ostaju isti, samo dodajem za info-card */
 .exam-scheduling-container {
   padding: 20px;
   max-width: 1400px;
@@ -453,16 +444,54 @@ export default {
   cursor: not-allowed;
 }
 
+/* Info card za instruktora */
+.info-card {
+  background: #f8f4fc;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  border-left: 4px solid #4CAF50;
+}
+
+.info-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.info-icon {
+  font-size: 1.5rem;
+}
+
+.info-header h3 {
+  color: #4f364b;
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.info-content {
+  padding-left: 35px;
+}
+
+.info-name {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #2c1f2d;
+  margin-bottom: 5px;
+}
+
+.info-details {
+  font-size: 0.9rem;
+  color: #8a7a99;
+}
+
 .suggestion-card {
   background: #f8f4fc;
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 20px;
   border-left: 4px solid;
-}
-
-.instructor-suggestion {
-  border-left-color: #4CAF50;
 }
 
 .professor-suggestion {
@@ -498,7 +527,6 @@ export default {
   margin-bottom: 5px;
 }
 
-.suggestion-details,
 .suggestion-workload {
   font-size: 0.9rem;
   color: #8a7a99;
